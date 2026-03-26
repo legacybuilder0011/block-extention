@@ -9,11 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const protectionItems = document.querySelectorAll(".protection-item");
 
   // Get current status
-  chrome.runtime.sendMessage({ type: "getStatus" }, (response) => {
-    if (response) {
-      updateUI(response.enabled, response.stats);
-    }
-  });
+  refreshStatus();
 
   // Toggle protection
   toggleSwitch.addEventListener("change", () => {
@@ -32,6 +28,18 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   });
+
+  function refreshStatus() {
+    chrome.runtime.sendMessage({ type: "getStatus" }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.log("Error getting status:", chrome.runtime.lastError);
+        return;
+      }
+      if (response) {
+        updateUI(response.enabled, response.stats);
+      }
+    });
+  }
 
   function updateUI(enabled, stats) {
     toggleSwitch.checked = enabled;
@@ -66,13 +74,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function updateStatsDisplay(stats) {
     document.getElementById("trackersBlocked").textContent =
-      formatNumber(stats.trackersBlocked);
+      formatNumber(stats.trackersBlocked || 0);
     document.getElementById("fingerprintsBlocked").textContent =
-      formatNumber(stats.fingerprintsBlocked);
+      formatNumber(stats.fingerprintsBlocked || 0);
     document.getElementById("cookiesBlocked").textContent =
-      formatNumber(stats.cookiesBlocked);
+      formatNumber(stats.cookiesBlocked || 0);
     document.getElementById("totalBlocked").textContent =
-      formatNumber(stats.totalBlocked);
+      formatNumber(stats.totalBlocked || 0);
   }
 
   function formatNumber(num) {
@@ -82,11 +90,5 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Auto-refresh stats every 2 seconds
-  setInterval(() => {
-    chrome.runtime.sendMessage({ type: "getStatus" }, (response) => {
-      if (response) {
-        updateStatsDisplay(response.stats);
-      }
-    });
-  }, 2000);
+  setInterval(refreshStatus, 2000);
 });

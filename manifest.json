@@ -1,15 +1,15 @@
 {
   "manifest_version": 3,
   "name": "Total Privacy Shield",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Blocks all tracking: IP/location, device fingerprinting, canvas, WebGL, fonts, screen resolution, WebRTC leaks, Wi-Fi info, and more.",
   "permissions": [
     "storage",
     "activeTab",
     "scripting",
-    "webRequest",
     "declarativeNetRequest",
-    "declarativeNetRequestWithHostAccess"
+    "declarativeNetRequestWithHostAccess",
+    "declarativeNetRequestFeedback"
   ],
   "host_permissions": ["<all_urls>"],
   "background": {
@@ -45,11 +45,5 @@
         "path": "rules/tracking_rules.json"
       }
     ]
-  },
-  "web_accessible_resources": [
-    {
-      "resources": ["injected.js"],
-      "matches": ["<all_urls>"]
-    }
-  ]
+  }
 }
