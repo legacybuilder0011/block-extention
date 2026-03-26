@@ -13,10 +13,15 @@
 
   let blockCount = 0;
 
-  function reportBlock(category) {
+  function reportBlock(category, url, detail) {
     blockCount++;
     try {
-      window.postMessage({ type: "TPS_BLOCK", category: category }, "*");
+      window.postMessage({
+        type: "TPS_BLOCK",
+        category: category,
+        url: url || window.location.href,
+        detail: detail || "Blocked",
+      }, "*");
     } catch (e) {}
   }
 
@@ -50,7 +55,7 @@
       try {
         Object.defineProperty(window, name, {
           get: () => {
-            reportBlock("trackersBlocked");
+            reportBlock("tracker", "webrtc://" + name, "WebRTC leak blocked");
             return undefined;
           },
           set: () => {},
@@ -64,7 +69,7 @@
   try {
     if (navigator.mediaDevices) {
       navigator.mediaDevices.getUserMedia = function (constraints) {
-        reportBlock("fingerprintsBlocked");
+        reportBlock("fingerprint", "media://getUserMedia", "Camera/mic access blocked");
         return Promise.reject(new DOMException("Blocked by Total Privacy Shield", "NotAllowedError"));
       };
     }
@@ -76,11 +81,11 @@
 
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition = function (success, error) {
-      reportBlock("trackersBlocked");
+      reportBlock("tracker", "geo://getCurrentPosition", "Geolocation blocked");
       if (error) error({ code: 1, message: "Blocked by Total Privacy Shield" });
     };
     navigator.geolocation.watchPosition = function (success, error) {
-      reportBlock("trackersBlocked");
+      reportBlock("tracker", "geo://watchPosition", "Geolocation watch blocked");
       if (error) error({ code: 1, message: "Blocked by Total Privacy Shield" });
       return 0;
     };
@@ -139,7 +144,7 @@
           data[i + 2] = data[i + 2] ^ (Math.random() * 2 | 0);
         }
         ctx.putImageData(imageData, 0, 0);
-        reportBlock("fingerprintsBlocked");
+        reportBlock("fingerprint", "canvas://toDataURL", "Canvas fingerprint spoofed");
       }
     } catch (e) {}
     return origToDataURL.apply(this, arguments);
@@ -158,7 +163,7 @@
           data[i + 2] = data[i + 2] ^ (Math.random() * 2 | 0);
         }
         ctx.putImageData(imageData, 0, 0);
-        reportBlock("fingerprintsBlocked");
+        reportBlock("fingerprint", "canvas://toBlob", "Canvas fingerprint spoofed");
       }
     } catch (e) {}
     return origToBlob.call(this, callback, type, quality);
@@ -167,7 +172,7 @@
   try {
     if (typeof OffscreenCanvas !== "undefined") {
       OffscreenCanvas.prototype.convertToBlob = function () {
-        reportBlock("fingerprintsBlocked");
+        reportBlock("fingerprint", "canvas://OffscreenCanvas", "OffscreenCanvas blocked");
         return Promise.reject(new DOMException("Blocked by Total Privacy Shield"));
       };
     }
@@ -183,7 +188,7 @@
         const param = args[0];
         if (param === 0x1f01 || param === 0x1f00 ||
             param === 0x9245 || param === 0x9246) {
-          reportBlock("fingerprintsBlocked");
+          reportBlock("fingerprint", "webgl://getParameter", "GPU info spoofed");
           return "Generic GPU";
         }
         return Reflect.apply(target, thisArg, args);
@@ -199,7 +204,7 @@
           const origGetExt = proto.getExtension;
           proto.getExtension = function (name) {
             if (name === "WEBGL_debug_renderer_info") {
-              reportBlock("fingerprintsBlocked");
+              reportBlock("fingerprint", "webgl://debug_renderer_info", "GPU debug info blocked");
               return null;
             }
             return origGetExt.call(this, name);
@@ -234,7 +239,7 @@
   // Block battery status
   if (navigator.getBattery) {
     navigator.getBattery = () => {
-      reportBlock("fingerprintsBlocked");
+      reportBlock("fingerprint", "api://Battery", "Battery status blocked");
       return Promise.reject(new DOMException("Blocked by Total Privacy Shield"));
     };
   }
@@ -273,7 +278,7 @@
       for (let i = 0; i < array.length; i++) {
         array[i] += (Math.random() - 0.5) * 0.1;
       }
-      reportBlock("fingerprintsBlocked");
+      reportBlock("fingerprint", "audio://AnalyserNode", "Audio fingerprint spoofed");
     };
 
     const origGetByte = AnalyserNode.prototype.getByteFrequencyData;
@@ -282,7 +287,7 @@
       for (let i = 0; i < array.length; i++) {
         array[i] = Math.max(0, Math.min(255, array[i] + (Math.random() * 2 - 1) | 0));
       }
-      reportBlock("fingerprintsBlocked");
+      reportBlock("fingerprint", "audio://ByteFrequency", "Audio fingerprint spoofed");
     };
   } catch (e) {}
 
@@ -297,8 +302,8 @@
   // =========================================================================
 
   const origSendBeacon = navigator.sendBeacon;
-  navigator.sendBeacon = function () {
-    reportBlock("trackersBlocked");
+  navigator.sendBeacon = function (url) {
+    reportBlock("tracker", url || "beacon://sendBeacon", "Tracking beacon blocked");
     return false;
   };
 
@@ -324,7 +329,7 @@
   const origAddEventListener = EventTarget.prototype.addEventListener;
   EventTarget.prototype.addEventListener = function (type, listener, options) {
     if (["devicemotion", "deviceorientation", "deviceorientationabsolute"].includes(type)) {
-      reportBlock("fingerprintsBlocked");
+      reportBlock("fingerprint", "sensor://" + type, "Device sensor blocked");
       return;
     }
     return origAddEventListener.call(this, type, listener, options);
@@ -443,7 +448,7 @@
   window.fetch = function (input, init) {
     const url = (typeof input === "string") ? input : (input?.url || "");
     if (isTrackingURL(url)) {
-      reportBlock("trackersBlocked");
+      reportBlock("tracker", url, "Tracking fetch() blocked");
       return Promise.reject(new TypeError("Blocked by Total Privacy Shield"));
     }
     return origFetch.apply(this, arguments);
@@ -459,7 +464,7 @@
   const origXHRSend = XMLHttpRequest.prototype.send;
   XMLHttpRequest.prototype.send = function () {
     if (this._tpsUrl && isTrackingURL(this._tpsUrl)) {
-      reportBlock("trackersBlocked");
+      reportBlock("tracker", this._tpsUrl, "Tracking XHR blocked");
       this.abort();
       return;
     }
@@ -473,7 +478,7 @@
       get: function () { return origImageSrc.get.call(this); },
       set: function (val) {
         if (typeof val === "string" && isTrackingURL(val)) {
-          reportBlock("trackersBlocked");
+          reportBlock("tracker", val, "Tracking pixel blocked");
           return;
         }
         origImageSrc.set.call(this, val);

@@ -1255,5 +1255,171 @@
       "urlFilter": "*",
       "resourceTypes": ["main_frame", "sub_frame", "script", "xmlhttprequest", "image", "font", "stylesheet", "ping", "other"]
     }
+  },
+
+  {
+    "id": 205,
+    "priority": 2,
+    "action": {
+      "type": "modifyHeaders",
+      "responseHeaders": [
+        { "header": "set-cookie", "operation": "remove" }
+      ]
+    },
+    "condition": {
+      "urlFilter": "*",
+      "resourceTypes": ["main_frame", "sub_frame", "script", "xmlhttprequest", "image", "font", "stylesheet", "ping", "other"]
+    }
+  },
+  {
+    "id": 206,
+    "priority": 2,
+    "action": {
+      "type": "modifyHeaders",
+      "requestHeaders": [
+        { "header": "cookie", "operation": "remove" }
+      ]
+    },
+    "condition": {
+      "urlFilter": "*",
+      "domainType": "thirdParty",
+      "resourceTypes": ["sub_frame", "script", "xmlhttprequest", "image", "font", "stylesheet", "ping", "other"]
+    }
+  },
+
+  {
+    "id": 300,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "urlFilter": "||ads.yahoo.com",
+      "resourceTypes": ["script", "xmlhttprequest", "image", "ping", "other", "sub_frame"]
+    }
+  },
+  {
+    "id": 301,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "urlFilter": "||ad.turn.com",
+      "resourceTypes": ["script", "xmlhttprequest", "image", "ping", "other"]
+    }
+  },
+  {
+    "id": 302,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "urlFilter": "||serving-sys.com",
+      "resourceTypes": ["script", "xmlhttprequest", "image", "ping", "other", "sub_frame"]
+    }
+  },
+  {
+    "id": 303,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "urlFilter": "||moatads.com",
+      "resourceTypes": ["script", "xmlhttprequest", "image", "ping", "other"]
+    }
+  },
+  {
+    "id": 304,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "urlFilter": "||2mdn.net",
+      "resourceTypes": ["script", "xmlhttprequest", "image", "ping", "other", "sub_frame"]
+    }
+  },
+  {
+    "id": 305,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "urlFilter": "||medianet.com",
+      "resourceTypes": ["script", "xmlhttprequest", "image", "ping", "other"]
+    }
+  },
+  {
+    "id": 306,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "urlFilter": "||contextweb.com",
+      "resourceTypes": ["script", "xmlhttprequest", "image", "ping", "other"]
+    }
+  },
+  {
+    "id": 307,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "urlFilter": "||yieldmanager.com",
+      "resourceTypes": ["script", "xmlhttprequest", "image", "ping", "other"]
+    }
+  },
+  {
+    "id": 308,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "urlFilter": "||advertising.com",
+      "resourceTypes": ["script", "xmlhttprequest", "image", "ping", "other", "sub_frame"]
+    }
+  },
+  {
+    "id": 309,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "urlFilter": "||yimg.com/cv/",
+      "resourceTypes": ["script", "xmlhttprequest", "image", "ping", "other"]
+    }
+  },
+  {
+    "id": 310,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "urlFilter": "||quantcount.com",
+      "resourceTypes": ["script", "xmlhttprequest", "image", "ping", "other"]
+    }
+  },
+  {
+    "id": 311,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "urlFilter": "||bidswitch.net",
+      "resourceTypes": ["script", "xmlhttprequest", "image", "ping", "other"]
+    }
+  },
+  {
+    "id": 312,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "urlFilter": "||liadm.com",
+      "resourceTypes": ["script", "xmlhttprequest", "image", "ping", "other"]
+    }
+  },
+  {
+    "id": 313,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "urlFilter": "||sitescout.com",
+      "resourceTypes": ["script", "xmlhttprequest", "image", "ping", "other"]
+    }
+  },
+  {
+    "id": 314,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "urlFilter": "||simpli.fi",
+      "resourceTypes": ["script", "xmlhttprequest", "image", "ping", "other"]
+    }
   }
 ]

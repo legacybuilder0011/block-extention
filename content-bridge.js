@@ -1,7 +1,6 @@
 /**
- * Content Bridge - Runs in ISOLATED world (can communicate with background)
- * Listens for block events from the MAIN world content script via window messages,
- * then forwards them to the background service worker.
+ * Content Bridge - ISOLATED world
+ * Relays block events from MAIN world content script to background service worker.
  */
 
 window.addEventListener("message", (event) => {
@@ -10,10 +9,10 @@ window.addEventListener("message", (event) => {
     try {
       chrome.runtime.sendMessage({
         type: "contentBlock",
-        category: event.data.category || "fingerprintsBlocked",
+        category: event.data.category || "fingerprint",
+        url: event.data.url || "JavaScript API",
+        detail: event.data.detail || "Blocked",
       });
-    } catch (e) {
-      // Extension context may be invalidated
-    }
+    } catch (e) {}
   }
 });

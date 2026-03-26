@@ -10,110 +10,97 @@
   <div class="container">
     <div class="header">
       <div class="logo">
-        <svg width="32" height="32" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg width="28" height="28" viewBox="0 0 64 64" fill="none">
           <path d="M32 4L8 16V32C8 48 18 58 32 62C46 58 56 48 56 32V16L32 4Z" fill="#00ff88" opacity="0.2" stroke="#00ff88" stroke-width="2"/>
           <path d="M24 32L30 38L42 26" stroke="#00ff88" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </div>
-      <h1>Total Privacy Shield</h1>
-    </div>
-
-    <div class="toggle-section">
-      <span class="toggle-label" id="statusText">Protection Active</span>
+      <div class="header-text">
+        <h1>Total Privacy Shield</h1>
+        <div class="site-url" id="siteUrl">No site loaded</div>
+      </div>
       <label class="switch">
         <input type="checkbox" id="toggleSwitch" checked>
         <span class="slider"></span>
       </label>
     </div>
 
-    <div class="protection-grid">
-      <div class="protection-item active" data-protection="ip">
-        <div class="icon">🌐</div>
-        <div class="label">IP & Location</div>
-        <div class="status">Blocked</div>
+    <!-- Tab Navigation -->
+    <div class="tabs">
+      <button class="tab active" data-tab="dashboard">Dashboard</button>
+      <button class="tab" data-tab="activity">Live Activity</button>
+    </div>
+
+    <!-- Dashboard Tab -->
+    <div class="tab-content active" id="tab-dashboard">
+      <div class="stats-bar">
+        <div class="stat-big">
+          <div class="stat-big-value" id="totalBlocked">0</div>
+          <div class="stat-big-label">Total Blocked on This Page</div>
+        </div>
       </div>
-      <div class="protection-item active" data-protection="fingerprint">
-        <div class="icon">🖐️</div>
-        <div class="label">Fingerprinting</div>
-        <div class="status">Blocked</div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">T</div>
+          <div class="stat-info">
+            <div class="stat-value" id="trackersBlocked">0</div>
+            <div class="stat-label">Trackers</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">F</div>
+          <div class="stat-info">
+            <div class="stat-value" id="fingerprintsBlocked">0</div>
+            <div class="stat-label">Fingerprints</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">C</div>
+          <div class="stat-info">
+            <div class="stat-value" id="cookiesBlocked">0</div>
+            <div class="stat-label">Cookies</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">A</div>
+          <div class="stat-info">
+            <div class="stat-value" id="adsBlocked">0</div>
+            <div class="stat-label">Ads</div>
+          </div>
+        </div>
       </div>
-      <div class="protection-item active" data-protection="canvas">
-        <div class="icon">🎨</div>
-        <div class="label">Canvas</div>
-        <div class="status">Spoofed</div>
-      </div>
-      <div class="protection-item active" data-protection="webgl">
-        <div class="icon">🎮</div>
-        <div class="label">WebGL / GPU</div>
-        <div class="status">Blocked</div>
-      </div>
-      <div class="protection-item active" data-protection="webrtc">
-        <div class="icon">📡</div>
-        <div class="label">WebRTC Leak</div>
-        <div class="status">Blocked</div>
-      </div>
-      <div class="protection-item active" data-protection="fonts">
-        <div class="icon">🔤</div>
-        <div class="label">Font Tracking</div>
-        <div class="status">Blocked</div>
-      </div>
-      <div class="protection-item active" data-protection="screen">
-        <div class="icon">🖥️</div>
-        <div class="label">Screen Info</div>
-        <div class="status">Spoofed</div>
-      </div>
-      <div class="protection-item active" data-protection="cookies">
-        <div class="icon">🍪</div>
-        <div class="label">3rd Party Cookies</div>
-        <div class="status">Blocked</div>
-      </div>
-      <div class="protection-item active" data-protection="wifi">
-        <div class="icon">📶</div>
-        <div class="label">Wi-Fi / Network</div>
-        <div class="status">Blocked</div>
-      </div>
-      <div class="protection-item active" data-protection="audio">
-        <div class="icon">🔊</div>
-        <div class="label">Audio Fingerprint</div>
-        <div class="status">Blocked</div>
-      </div>
-      <div class="protection-item active" data-protection="ua">
-        <div class="icon">🕵️</div>
-        <div class="label">Browser / OS</div>
-        <div class="status">Spoofed</div>
-      </div>
-      <div class="protection-item active" data-protection="sensors">
-        <div class="icon">📱</div>
-        <div class="label">Device Sensors</div>
-        <div class="status">Blocked</div>
+
+      <div class="protection-grid">
+        <div class="protection-item active"><div class="p-dot"></div><span>IP & Location</span></div>
+        <div class="protection-item active"><div class="p-dot"></div><span>WebRTC Leak</span></div>
+        <div class="protection-item active"><div class="p-dot"></div><span>Canvas</span></div>
+        <div class="protection-item active"><div class="p-dot"></div><span>WebGL / GPU</span></div>
+        <div class="protection-item active"><div class="p-dot"></div><span>Font Tracking</span></div>
+        <div class="protection-item active"><div class="p-dot"></div><span>Screen Info</span></div>
+        <div class="protection-item active"><div class="p-dot"></div><span>Browser / OS</span></div>
+        <div class="protection-item active"><div class="p-dot"></div><span>Wi-Fi / Network</span></div>
+        <div class="protection-item active"><div class="p-dot"></div><span>Audio FP</span></div>
+        <div class="protection-item active"><div class="p-dot"></div><span>Cookies</span></div>
+        <div class="protection-item active"><div class="p-dot"></div><span>Device Sensors</span></div>
+        <div class="protection-item active"><div class="p-dot"></div><span>Ads & Scripts</span></div>
       </div>
     </div>
 
-    <div class="stats-section">
-      <h2>Blocking Stats</h2>
-      <div class="stats-grid">
-        <div class="stat">
-          <div class="stat-value" id="trackersBlocked">0</div>
-          <div class="stat-label">Trackers</div>
-        </div>
-        <div class="stat">
-          <div class="stat-value" id="fingerprintsBlocked">0</div>
-          <div class="stat-label">Fingerprints</div>
-        </div>
-        <div class="stat">
-          <div class="stat-value" id="cookiesBlocked">0</div>
-          <div class="stat-label">Cookies</div>
-        </div>
-        <div class="stat">
-          <div class="stat-value" id="totalBlocked">0</div>
-          <div class="stat-label">Total</div>
-        </div>
+    <!-- Live Activity Tab -->
+    <div class="tab-content" id="tab-activity">
+      <div class="activity-header">
+        <span>Real-time blocked requests</span>
+        <button id="clearLog" class="clear-btn">Clear</button>
       </div>
-      <button id="resetStats" class="reset-btn">Reset Stats</button>
+      <div class="activity-log" id="activityLog">
+        <div class="log-empty">Navigate to a website to see blocked requests</div>
+      </div>
     </div>
 
     <div class="footer">
-      <p>Total Privacy Shield v1.0</p>
+      <span>v3.0</span>
+      <button id="resetStats" class="reset-link">Reset Page Stats</button>
     </div>
   </div>
 
