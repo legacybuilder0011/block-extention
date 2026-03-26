@@ -12,6 +12,7 @@ window.addEventListener("message", (event) => {
         category: event.data.category || "fingerprint",
         url: event.data.url || "JavaScript API",
         detail: event.data.detail || "Blocked",
+        protection: event.data.protection || null,
       });
     } catch (e) {}
   }

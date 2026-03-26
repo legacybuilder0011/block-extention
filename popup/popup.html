@@ -25,7 +25,6 @@
       </label>
     </div>
 
-    <!-- Tab Navigation -->
     <div class="tabs">
       <button class="tab active" data-tab="dashboard">Dashboard</button>
       <button class="tab" data-tab="activity">Live Activity</button>
@@ -34,56 +33,31 @@
     <!-- Dashboard Tab -->
     <div class="tab-content active" id="tab-dashboard">
       <div class="stats-bar">
-        <div class="stat-big">
-          <div class="stat-big-value" id="totalBlocked">0</div>
-          <div class="stat-big-label">Total Blocked on This Page</div>
-        </div>
+        <div class="stat-big-value" id="totalBlocked">0</div>
+        <div class="stat-big-label">Total Blocked on This Page</div>
       </div>
 
       <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-icon">T</div>
-          <div class="stat-info">
-            <div class="stat-value" id="trackersBlocked">0</div>
-            <div class="stat-label">Trackers</div>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">F</div>
-          <div class="stat-info">
-            <div class="stat-value" id="fingerprintsBlocked">0</div>
-            <div class="stat-label">Fingerprints</div>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">C</div>
-          <div class="stat-info">
-            <div class="stat-value" id="cookiesBlocked">0</div>
-            <div class="stat-label">Cookies</div>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">A</div>
-          <div class="stat-info">
-            <div class="stat-value" id="adsBlocked">0</div>
-            <div class="stat-label">Ads</div>
-          </div>
-        </div>
+        <div class="stat-card"><div class="stat-icon si-t">T</div><div class="stat-info"><div class="stat-value" id="trackersBlocked">0</div><div class="stat-label">Trackers</div></div></div>
+        <div class="stat-card"><div class="stat-icon si-f">F</div><div class="stat-info"><div class="stat-value" id="fingerprintsBlocked">0</div><div class="stat-label">Fingerprints</div></div></div>
+        <div class="stat-card"><div class="stat-icon si-c">C</div><div class="stat-info"><div class="stat-value" id="cookiesBlocked">0</div><div class="stat-label">Cookies</div></div></div>
+        <div class="stat-card"><div class="stat-icon si-a">A</div><div class="stat-info"><div class="stat-value" id="adsBlocked">0</div><div class="stat-label">Ads</div></div></div>
       </div>
 
+      <div class="section-title">Protection Status</div>
       <div class="protection-grid">
-        <div class="protection-item active"><div class="p-dot"></div><span>IP & Location</span></div>
-        <div class="protection-item active"><div class="p-dot"></div><span>WebRTC Leak</span></div>
-        <div class="protection-item active"><div class="p-dot"></div><span>Canvas</span></div>
-        <div class="protection-item active"><div class="p-dot"></div><span>WebGL / GPU</span></div>
-        <div class="protection-item active"><div class="p-dot"></div><span>Font Tracking</span></div>
-        <div class="protection-item active"><div class="p-dot"></div><span>Screen Info</span></div>
-        <div class="protection-item active"><div class="p-dot"></div><span>Browser / OS</span></div>
-        <div class="protection-item active"><div class="p-dot"></div><span>Wi-Fi / Network</span></div>
-        <div class="protection-item active"><div class="p-dot"></div><span>Audio FP</span></div>
-        <div class="protection-item active"><div class="p-dot"></div><span>Cookies</span></div>
-        <div class="protection-item active"><div class="p-dot"></div><span>Device Sensors</span></div>
-        <div class="protection-item active"><div class="p-dot"></div><span>Ads & Scripts</span></div>
+        <div class="protection-item" data-key="ip_location"><div class="p-dot"></div><span>IP & Location</span><div class="p-count" id="p-ip_location">0</div></div>
+        <div class="protection-item" data-key="webrtc"><div class="p-dot"></div><span>WebRTC Leak</span><div class="p-count" id="p-webrtc">0</div></div>
+        <div class="protection-item" data-key="canvas"><div class="p-dot"></div><span>Canvas</span><div class="p-count" id="p-canvas">0</div></div>
+        <div class="protection-item" data-key="webgl_gpu"><div class="p-dot"></div><span>WebGL / GPU</span><div class="p-count" id="p-webgl_gpu">0</div></div>
+        <div class="protection-item" data-key="font"><div class="p-dot"></div><span>Font Tracking</span><div class="p-count" id="p-font">0</div></div>
+        <div class="protection-item" data-key="screen"><div class="p-dot"></div><span>Screen Info</span><div class="p-count" id="p-screen">0</div></div>
+        <div class="protection-item" data-key="browser_os"><div class="p-dot"></div><span>Browser / OS</span><div class="p-count" id="p-browser_os">0</div></div>
+        <div class="protection-item" data-key="wifi_network"><div class="p-dot"></div><span>Wi-Fi / Network</span><div class="p-count" id="p-wifi_network">0</div></div>
+        <div class="protection-item" data-key="audio_fp"><div class="p-dot"></div><span>Audio FP</span><div class="p-count" id="p-audio_fp">0</div></div>
+        <div class="protection-item" data-key="cookies"><div class="p-dot"></div><span>Cookies</span><div class="p-count" id="p-cookies">0</div></div>
+        <div class="protection-item" data-key="sensors"><div class="p-dot"></div><span>Device Sensors</span><div class="p-count" id="p-sensors">0</div></div>
+        <div class="protection-item" data-key="ads_scripts"><div class="p-dot"></div><span>Ads & Scripts</span><div class="p-count" id="p-ads_scripts">0</div></div>
       </div>
     </div>
 
@@ -99,7 +73,7 @@
     </div>
 
     <div class="footer">
-      <span>v3.0</span>
+      <span>v4.0</span>
       <button id="resetStats" class="reset-link">Reset Page Stats</button>
     </div>
   </div>

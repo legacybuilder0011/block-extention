@@ -1,6 +1,6 @@
 /**
- * Total Privacy Shield - Popup v3
- * Per-tab real stats, live activity log
+ * Total Privacy Shield - Popup v4
+ * Per-tab stats with per-protection counts
  */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -20,7 +20,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Get current tab ID first
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     if (tabs[0]) {
       currentTabId = tabs[0].id;
@@ -28,7 +27,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Toggle
   toggleSwitch.addEventListener("change", () => {
     chrome.runtime.sendMessage({ type: "toggle" }, (response) => {
       if (response) {
@@ -38,16 +36,12 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Reset
   document.getElementById("resetStats").addEventListener("click", () => {
     if (currentTabId) {
-      chrome.runtime.sendMessage({ type: "resetTabStats", tabId: currentTabId }, () => {
-        refreshStatus();
-      });
+      chrome.runtime.sendMessage({ type: "resetTabStats", tabId: currentTabId }, () => refreshStatus());
     }
   });
 
-  // Clear log
   document.getElementById("clearLog").addEventListener("click", () => {
     if (currentTabId) {
       chrome.runtime.sendMessage({ type: "resetTabStats", tabId: currentTabId }, () => {
@@ -67,12 +61,9 @@ document.addEventListener("DOMContentLoaded", () => {
       // Site URL
       if (response.siteUrl) {
         try {
-          const url = new URL(response.siteUrl);
-          siteUrlEl.textContent = url.hostname;
+          siteUrlEl.textContent = new URL(response.siteUrl).hostname;
           siteUrlEl.title = response.siteUrl;
-        } catch (e) {
-          siteUrlEl.textContent = response.siteUrl;
-        }
+        } catch (e) { siteUrlEl.textContent = response.siteUrl; }
       } else {
         siteUrlEl.textContent = "No site loaded";
       }
@@ -85,25 +76,50 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("cookiesBlocked").textContent = s.cookies || 0;
       document.getElementById("adsBlocked").textContent = s.ads || 0;
 
-      // Animate total if > 0
-      const bigVal = document.getElementById("totalBlocked");
-      if (s.total > 0) {
-        bigVal.style.color = "#00ff88";
-      }
+      // Per-protection counts
+      const p = s.protections || {};
+      const keys = [
+        "ip_location", "webrtc", "canvas", "webgl_gpu",
+        "font", "screen", "browser_os", "wifi_network",
+        "audio_fp", "cookies", "sensors", "ads_scripts"
+      ];
+      keys.forEach((key) => {
+        const el = document.getElementById("p-" + key);
+        const count = p[key] || 0;
+        if (el) {
+          el.textContent = count;
+          // Show count with color
+          if (count > 0) {
+            el.classList.add("active-count");
+          } else {
+            el.classList.remove("active-count");
+          }
+        }
+        // Update the protection item's dot
+        const item = document.querySelector(`.protection-item[data-key="${key}"]`);
+        if (item) {
+          if (response.enabled && count > 0) {
+            item.classList.add("triggered");
+            item.classList.remove("inactive");
+          } else if (response.enabled) {
+            item.classList.add("standby");
+            item.classList.remove("triggered", "inactive");
+          } else {
+            item.classList.add("inactive");
+            item.classList.remove("triggered", "standby");
+          }
+        }
+      });
 
-      // Activity log
       renderLog(response.log || []);
     });
   }
 
   function updateProtectionStatus(enabled) {
     protectionItems.forEach((item) => {
-      if (enabled) {
-        item.classList.add("active");
-        item.classList.remove("inactive");
-      } else {
-        item.classList.remove("active");
+      if (!enabled) {
         item.classList.add("inactive");
+        item.classList.remove("triggered", "standby");
       }
     });
   }
@@ -118,16 +134,16 @@ document.addEventListener("DOMContentLoaded", () => {
       const time = new Date(entry.time);
       const timeStr = time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
       const cat = entry.category || "tracker";
-      const tagLabel = cat === "fingerprint" ? "FP" : cat === "cookie" ? "COOKIE" : cat === "ad" ? "AD" : "TRACK";
+      const tagLabels = { tracker: "TRACK", fingerprint: "FP", cookie: "COOKIE", ad: "AD" };
+      const tagLabel = tagLabels[cat] || "BLOCK";
 
-      // Extract domain from URL for cleaner display
       let displayUrl = entry.url || "";
       try {
-        const urlObj = new URL(entry.url);
-        displayUrl = urlObj.hostname + urlObj.pathname.substring(0, 40);
-      } catch (e) {
-        displayUrl = entry.url;
-      }
+        if (displayUrl.startsWith("http")) {
+          const u = new URL(entry.url);
+          displayUrl = u.hostname + u.pathname.substring(0, 40);
+        }
+      } catch (e) {}
 
       return `<div class="log-entry ${cat}">
         <span class="log-time">${timeStr}</span>
@@ -139,6 +155,5 @@ document.addEventListener("DOMContentLoaded", () => {
     activityLog.innerHTML = html;
   }
 
-  // Auto-refresh every 1 second for real-time feel
   setInterval(refreshStatus, 1000);
 });
