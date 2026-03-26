@@ -1,6 +1,7 @@
 /**
  * Total Privacy Shield - Content Script (MAIN world)
  * Runs before any page script to override and block all tracking/fingerprinting APIs.
+ * Reports blocks to background via window.postMessage -> content-bridge.js
  */
 
 (function () {
@@ -10,10 +11,13 @@
   // UTILITY HELPERS
   // =========================================================================
 
-  function spoofValue(original, spoofed) {
-    return typeof original === "function"
-      ? function () { return spoofed; }
-      : spoofed;
+  let blockCount = 0;
+
+  function reportBlock(category) {
+    blockCount++;
+    try {
+      window.postMessage({ type: "TPS_BLOCK", category: category }, "*");
+    } catch (e) {}
   }
 
   function defineReadonly(obj, prop, value) {
@@ -31,7 +35,6 @@
   // 1. BLOCK WebRTC (IP Leak Prevention)
   // =========================================================================
 
-  // WebRTC can leak real IP even behind VPN
   const rtcObjects = [
     "RTCPeerConnection",
     "webkitRTCPeerConnection",
@@ -43,21 +46,25 @@
   ];
 
   rtcObjects.forEach((name) => {
-    try {
-      Object.defineProperty(window, name, {
-        get: () => undefined,
-        set: () => {},
-        configurable: false,
-      });
-    } catch (e) {}
+    if (window[name]) {
+      try {
+        Object.defineProperty(window, name, {
+          get: () => {
+            reportBlock("trackersBlocked");
+            return undefined;
+          },
+          set: () => {},
+          configurable: false,
+        });
+      } catch (e) {}
+    }
   });
 
-  // Also block inside navigator
+  // Block getUserMedia
   try {
     if (navigator.mediaDevices) {
-      const origGetUserMedia = navigator.mediaDevices.getUserMedia;
       navigator.mediaDevices.getUserMedia = function (constraints) {
-        // Block if only used for fingerprinting (no actual media needed)
+        reportBlock("fingerprintsBlocked");
         return Promise.reject(new DOMException("Blocked by Total Privacy Shield", "NotAllowedError"));
       };
     }
@@ -69,14 +76,12 @@
 
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition = function (success, error) {
-      if (error) {
-        error({ code: 1, message: "Blocked by Total Privacy Shield" });
-      }
+      reportBlock("trackersBlocked");
+      if (error) error({ code: 1, message: "Blocked by Total Privacy Shield" });
     };
     navigator.geolocation.watchPosition = function (success, error) {
-      if (error) {
-        error({ code: 1, message: "Blocked by Total Privacy Shield" });
-      }
+      reportBlock("trackersBlocked");
+      if (error) error({ code: 1, message: "Blocked by Total Privacy Shield" });
       return 0;
     };
     navigator.geolocation.clearWatch = function () {};
@@ -105,16 +110,14 @@
   defineReadonly(window, "innerWidth", 1920);
   defineReadonly(window, "innerHeight", 1080);
 
-  // matchMedia spoofing for screen-based fingerprinting
   const origMatchMedia = window.matchMedia;
   window.matchMedia = function (query) {
-    // Return generic results for resolution / device queries
     if (
       query.includes("device-width") ||
       query.includes("device-height") ||
       query.includes("resolution")
     ) {
-      return { matches: false, media: query, addListener: () => {}, removeListener: () => {} };
+      return { matches: false, media: query, addListener: () => {}, removeListener: () => {}, addEventListener: () => {}, removeEventListener: () => {}, dispatchEvent: () => false };
     }
     return origMatchMedia.call(window, query);
   };
@@ -123,45 +126,48 @@
   // 4. BLOCK CANVAS FINGERPRINTING
   // =========================================================================
 
-  // Add subtle noise to canvas to break fingerprinting while keeping pages functional
   const origToDataURL = HTMLCanvasElement.prototype.toDataURL;
   HTMLCanvasElement.prototype.toDataURL = function () {
-    const ctx = this.getContext("2d");
-    if (ctx) {
-      const imageData = ctx.getImageData(0, 0, this.width, this.height);
-      const data = imageData.data;
-      // Add random noise to pixel data
-      for (let i = 0; i < data.length; i += 4) {
-        data[i] = data[i] ^ (Math.random() * 2 | 0);     // R
-        data[i + 1] = data[i + 1] ^ (Math.random() * 2 | 0); // G
-        data[i + 2] = data[i + 2] ^ (Math.random() * 2 | 0); // B
+    try {
+      const ctx = this.getContext("2d");
+      if (ctx && this.width > 0 && this.height > 0) {
+        const imageData = ctx.getImageData(0, 0, this.width, this.height);
+        const data = imageData.data;
+        for (let i = 0; i < data.length; i += 4) {
+          data[i] = data[i] ^ (Math.random() * 2 | 0);
+          data[i + 1] = data[i + 1] ^ (Math.random() * 2 | 0);
+          data[i + 2] = data[i + 2] ^ (Math.random() * 2 | 0);
+        }
+        ctx.putImageData(imageData, 0, 0);
+        reportBlock("fingerprintsBlocked");
       }
-      ctx.putImageData(imageData, 0, 0);
-    }
+    } catch (e) {}
     return origToDataURL.apply(this, arguments);
   };
 
   const origToBlob = HTMLCanvasElement.prototype.toBlob;
   HTMLCanvasElement.prototype.toBlob = function (callback, type, quality) {
-    const ctx = this.getContext("2d");
-    if (ctx) {
-      const imageData = ctx.getImageData(0, 0, this.width, this.height);
-      const data = imageData.data;
-      for (let i = 0; i < data.length; i += 4) {
-        data[i] = data[i] ^ (Math.random() * 2 | 0);
-        data[i + 1] = data[i + 1] ^ (Math.random() * 2 | 0);
-        data[i + 2] = data[i + 2] ^ (Math.random() * 2 | 0);
+    try {
+      const ctx = this.getContext("2d");
+      if (ctx && this.width > 0 && this.height > 0) {
+        const imageData = ctx.getImageData(0, 0, this.width, this.height);
+        const data = imageData.data;
+        for (let i = 0; i < data.length; i += 4) {
+          data[i] = data[i] ^ (Math.random() * 2 | 0);
+          data[i + 1] = data[i + 1] ^ (Math.random() * 2 | 0);
+          data[i + 2] = data[i + 2] ^ (Math.random() * 2 | 0);
+        }
+        ctx.putImageData(imageData, 0, 0);
+        reportBlock("fingerprintsBlocked");
       }
-      ctx.putImageData(imageData, 0, 0);
-    }
+    } catch (e) {}
     return origToBlob.call(this, callback, type, quality);
   };
 
-  // Block OffscreenCanvas fingerprinting
   try {
     if (typeof OffscreenCanvas !== "undefined") {
-      const origOSCconvertToBlob = OffscreenCanvas.prototype.convertToBlob;
       OffscreenCanvas.prototype.convertToBlob = function () {
+        reportBlock("fingerprintsBlocked");
         return Promise.reject(new DOMException("Blocked by Total Privacy Shield"));
       };
     }
@@ -175,40 +181,32 @@
     const getParamHandler = {
       apply(target, thisArg, args) {
         const param = args[0];
-        // Block renderer and vendor strings (GPU fingerprint)
-        if (param === 0x1f01 || param === 0x1f00) { // RENDERER, VENDOR
-          return "Generic GPU";
-        }
-        if (param === 0x9245 || param === 0x9246) { // UNMASKED_VENDOR, UNMASKED_RENDERER
+        if (param === 0x1f01 || param === 0x1f00 ||
+            param === 0x9245 || param === 0x9246) {
+          reportBlock("fingerprintsBlocked");
           return "Generic GPU";
         }
         return Reflect.apply(target, thisArg, args);
       },
     };
 
-    const contexts = ["WebGLRenderingContext", "WebGL2RenderingContext"];
-    contexts.forEach((ctxName) => {
+    ["WebGLRenderingContext", "WebGL2RenderingContext"].forEach((ctxName) => {
       try {
         const proto = window[ctxName]?.prototype;
         if (proto) {
           proto.getParameter = new Proxy(proto.getParameter, getParamHandler);
+
+          const origGetExt = proto.getExtension;
+          proto.getExtension = function (name) {
+            if (name === "WEBGL_debug_renderer_info") {
+              reportBlock("fingerprintsBlocked");
+              return null;
+            }
+            return origGetExt.call(this, name);
+          };
         }
       } catch (e) {}
     });
-
-    // Block WEBGL_debug_renderer_info extension
-    const origGetExtension = WebGLRenderingContext.prototype.getExtension;
-    WebGLRenderingContext.prototype.getExtension = function (name) {
-      if (name === "WEBGL_debug_renderer_info") return null;
-      return origGetExtension.call(this, name);
-    };
-    try {
-      const origGetExtension2 = WebGL2RenderingContext.prototype.getExtension;
-      WebGL2RenderingContext.prototype.getExtension = function (name) {
-        if (name === "WEBGL_debug_renderer_info") return null;
-        return origGetExtension2.call(this, name);
-      };
-    } catch (e) {}
   };
   blockWebGLParams();
 
@@ -228,56 +226,39 @@
   defineReadonly(navigator, "deviceMemory", 8);
   defineReadonly(navigator, "maxTouchPoints", 0);
 
-  // Block navigator.connection (network fingerprinting / Wi-Fi detection)
+  // Block navigator.connection (Wi-Fi / network detection)
   defineReadonly(navigator, "connection", undefined);
   defineReadonly(navigator, "mozConnection", undefined);
   defineReadonly(navigator, "webkitConnection", undefined);
 
-  // Block battery status (fingerprinting)
+  // Block battery status
   if (navigator.getBattery) {
-    navigator.getBattery = () =>
-      Promise.reject(new DOMException("Blocked by Total Privacy Shield"));
+    navigator.getBattery = () => {
+      reportBlock("fingerprintsBlocked");
+      return Promise.reject(new DOMException("Blocked by Total Privacy Shield"));
+    };
   }
 
-  // Block Bluetooth (device fingerprinting)
-  if (navigator.bluetooth) {
-    defineReadonly(navigator, "bluetooth", undefined);
-  }
-
-  // Block USB
-  if (navigator.usb) {
-    defineReadonly(navigator, "usb", undefined);
-  }
-
-  // Block Serial
-  if (navigator.serial) {
-    defineReadonly(navigator, "serial", undefined);
-  }
-
-  // Block HID
-  if (navigator.hid) {
-    defineReadonly(navigator, "hid", undefined);
-  }
+  // Block Bluetooth / USB / Serial / HID
+  if (navigator.bluetooth) defineReadonly(navigator, "bluetooth", undefined);
+  if (navigator.usb) defineReadonly(navigator, "usb", undefined);
+  if (navigator.serial) defineReadonly(navigator, "serial", undefined);
+  if (navigator.hid) defineReadonly(navigator, "hid", undefined);
 
   // =========================================================================
   // 7. BLOCK FONT FINGERPRINTING
   // =========================================================================
 
-  // Override font enumeration
   try {
     if (navigator.fonts) {
       defineReadonly(navigator, "fonts", { query: () => Promise.resolve([]) });
     }
   } catch (e) {}
 
-  // Block FontFaceSet from being enumerated
   try {
     if (document.fonts) {
-      const origCheck = document.fonts.check;
-      document.fonts.check = function () {
-        return true; // Claim all fonts exist so font probing returns uniform results
-      };
-      document.fonts.forEach = function () {}; // Block enumeration
+      document.fonts.check = function () { return true; };
+      document.fonts.forEach = function () {};
     }
   } catch (e) {}
 
@@ -286,25 +267,22 @@
   // =========================================================================
 
   try {
-    const origCreateOscillator = AudioContext.prototype.createOscillator;
-    const origCreateDynamicsCompressor = AudioContext.prototype.createDynamicsCompressor;
-    const origCreateAnalyser = AudioContext.prototype.createAnalyser;
-
-    // Add noise to AudioContext to break audio fingerprinting
-    const origGetFloatFrequencyData = AnalyserNode.prototype.getFloatFrequencyData;
+    const origGetFloat = AnalyserNode.prototype.getFloatFrequencyData;
     AnalyserNode.prototype.getFloatFrequencyData = function (array) {
-      origGetFloatFrequencyData.call(this, array);
+      origGetFloat.call(this, array);
       for (let i = 0; i < array.length; i++) {
         array[i] += (Math.random() - 0.5) * 0.1;
       }
+      reportBlock("fingerprintsBlocked");
     };
 
-    const origGetByteFrequencyData = AnalyserNode.prototype.getByteFrequencyData;
+    const origGetByte = AnalyserNode.prototype.getByteFrequencyData;
     AnalyserNode.prototype.getByteFrequencyData = function (array) {
-      origGetByteFrequencyData.call(this, array);
+      origGetByte.call(this, array);
       for (let i = 0; i < array.length; i++) {
         array[i] = Math.max(0, Math.min(255, array[i] + (Math.random() * 2 - 1) | 0));
       }
+      reportBlock("fingerprintsBlocked");
     };
   } catch (e) {}
 
@@ -312,19 +290,18 @@
   // 9. BLOCK NETWORK INFORMATION API (Wi-Fi / Router Detection)
   // =========================================================================
 
-  // Already blocked navigator.connection above, also block NetworkInformation
-  try {
-    defineReadonly(window, "NetworkInformation", undefined);
-  } catch (e) {}
+  try { defineReadonly(window, "NetworkInformation", undefined); } catch (e) {}
 
   // =========================================================================
-  // 10. BLOCK STORAGE-BASED TRACKING
+  // 10. BLOCK TRACKING BEACONS & PING
   // =========================================================================
 
-  // Block navigator.sendBeacon (tracking beacons)
-  navigator.sendBeacon = function () { return false; };
+  const origSendBeacon = navigator.sendBeacon;
+  navigator.sendBeacon = function () {
+    reportBlock("trackersBlocked");
+    return false;
+  };
 
-  // Block ping attribute tracking
   try {
     Object.defineProperty(HTMLAnchorElement.prototype, "ping", {
       get: () => "",
@@ -333,41 +310,28 @@
   } catch (e) {}
 
   // =========================================================================
-  // 11. BLOCK SENSOR APIs (Device Fingerprinting)
+  // 11. BLOCK SENSOR APIs
   // =========================================================================
 
-  const sensorAPIs = [
-    "Accelerometer",
-    "Gyroscope",
-    "Magnetometer",
-    "AbsoluteOrientationSensor",
-    "RelativeOrientationSensor",
-    "GravitySensor",
-    "LinearAccelerationSensor",
-    "AmbientLightSensor",
-  ];
-  sensorAPIs.forEach((api) => {
-    try {
-      defineReadonly(window, api, undefined);
-    } catch (e) {}
+  [
+    "Accelerometer", "Gyroscope", "Magnetometer",
+    "AbsoluteOrientationSensor", "RelativeOrientationSensor",
+    "GravitySensor", "LinearAccelerationSensor", "AmbientLightSensor",
+  ].forEach((api) => {
+    try { defineReadonly(window, api, undefined); } catch (e) {}
   });
 
-  // Block devicemotion and deviceorientation events
   const origAddEventListener = EventTarget.prototype.addEventListener;
   EventTarget.prototype.addEventListener = function (type, listener, options) {
-    const blocked = [
-      "devicemotion",
-      "deviceorientation",
-      "deviceorientationabsolute",
-    ];
-    if (blocked.includes(type)) {
-      return; // Silently block
+    if (["devicemotion", "deviceorientation", "deviceorientationabsolute"].includes(type)) {
+      reportBlock("fingerprintsBlocked");
+      return;
     }
     return origAddEventListener.call(this, type, listener, options);
   };
 
   // =========================================================================
-  // 12. BLOCK SPEECH RECOGNITION FINGERPRINTING
+  // 12. BLOCK SPEECH RECOGNITION
   // =========================================================================
 
   try {
@@ -380,44 +344,37 @@
   // =========================================================================
 
   try {
-    if (navigator.userAgentData) {
-      defineReadonly(navigator, "userAgentData", undefined);
-    }
+    if (navigator.userAgentData) defineReadonly(navigator, "userAgentData", undefined);
   } catch (e) {}
 
   // =========================================================================
-  // 14. BLOCK KEYBOARD / TYPING FINGERPRINTING
+  // 14. REDUCE TIMING PRECISION
   // =========================================================================
 
-  // Normalize keyboard event timing
-  const origDateNow = Date.now;
   const origPerfNow = performance.now;
-
-  // Reduce timing precision to 100ms to prevent timing-based fingerprinting
   performance.now = function () {
     return Math.round(origPerfNow.call(performance) / 100) * 100;
   };
 
   // =========================================================================
-  // 15. BLOCK PLUGINS & MIME TYPES FINGERPRINTING
+  // 15. BLOCK PLUGINS & MIME TYPES
   // =========================================================================
 
   defineReadonly(navigator, "plugins", []);
   defineReadonly(navigator, "mimeTypes", []);
 
   // =========================================================================
-  // 16. BLOCK DO-NOT-TRACK DETECTION
+  // 16. PRIVACY SIGNALS
   // =========================================================================
 
   defineReadonly(navigator, "doNotTrack", "1");
   defineReadonly(navigator, "globalPrivacyControl", true);
 
   // =========================================================================
-  // 17. BLOCK STORAGE FINGERPRINTING PROBES
+  // 17. SPOOF STORAGE QUOTA
   // =========================================================================
 
   try {
-    // Spoof storage quota to prevent fingerprinting via storage estimation
     if (navigator.storage && navigator.storage.estimate) {
       navigator.storage.estimate = () =>
         Promise.resolve({ quota: 1073741824, usage: 0 });
@@ -425,14 +382,106 @@
   } catch (e) {}
 
   // =========================================================================
-  // 18. BLOCK WEBGPU FINGERPRINTING
+  // 18. BLOCK WEBGPU
   // =========================================================================
 
   try {
-    if (navigator.gpu) {
-      defineReadonly(navigator, "gpu", undefined);
-    }
+    if (navigator.gpu) defineReadonly(navigator, "gpu", undefined);
   } catch (e) {}
+
+  // =========================================================================
+  // 19. INTERCEPT XHR & FETCH TO BLOCK TRACKING REQUESTS
+  // =========================================================================
+
+  const TRACKING_URL_PATTERNS = [
+    /google-analytics\.com/i,
+    /googletagmanager\.com/i,
+    /doubleclick\.net/i,
+    /facebook\.net.*fbevents/i,
+    /connect\.facebook\.net/i,
+    /pixel\.facebook/i,
+    /facebook\.com\/tr/i,
+    /hotjar\.com/i,
+    /clarity\.ms/i,
+    /fullstory\.com/i,
+    /mixpanel\.com/i,
+    /segment\.(io|com)/i,
+    /amplitude\.com/i,
+    /scorecardresearch\.com/i,
+    /bat\.bing\.com/i,
+    /analytics\.twitter/i,
+    /criteo\.(com|net)/i,
+    /taboola\.com/i,
+    /outbrain\.com/i,
+    /fingerprintjs/i,
+    /datadome/i,
+    /perimeterx/i,
+    /sentry\.io/i,
+    /newrelic/i,
+    /nr-data\.net/i,
+    /logging_client_events/i,
+    /\/collect\?.*tid=/i,
+    /\/beacon\b/i,
+    /\/telemetry/i,
+    /\/pageview/i,
+    /\/track\?/i,
+    /\/log_event/i,
+    /gtag\/js/i,
+    /gtm\.js/i,
+    /analytics\.js/i,
+  ];
+
+  function isTrackingURL(url) {
+    for (const pattern of TRACKING_URL_PATTERNS) {
+      if (pattern.test(url)) return true;
+    }
+    return false;
+  }
+
+  // Intercept fetch()
+  const origFetch = window.fetch;
+  window.fetch = function (input, init) {
+    const url = (typeof input === "string") ? input : (input?.url || "");
+    if (isTrackingURL(url)) {
+      reportBlock("trackersBlocked");
+      return Promise.reject(new TypeError("Blocked by Total Privacy Shield"));
+    }
+    return origFetch.apply(this, arguments);
+  };
+
+  // Intercept XMLHttpRequest
+  const origXHROpen = XMLHttpRequest.prototype.open;
+  XMLHttpRequest.prototype.open = function (method, url) {
+    this._tpsUrl = url;
+    return origXHROpen.apply(this, arguments);
+  };
+
+  const origXHRSend = XMLHttpRequest.prototype.send;
+  XMLHttpRequest.prototype.send = function () {
+    if (this._tpsUrl && isTrackingURL(this._tpsUrl)) {
+      reportBlock("trackersBlocked");
+      this.abort();
+      return;
+    }
+    return origXHRSend.apply(this, arguments);
+  };
+
+  // Intercept Image loading (tracking pixels)
+  const origImageSrc = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, "src");
+  if (origImageSrc) {
+    Object.defineProperty(HTMLImageElement.prototype, "src", {
+      get: function () { return origImageSrc.get.call(this); },
+      set: function (val) {
+        if (typeof val === "string" && isTrackingURL(val)) {
+          reportBlock("trackersBlocked");
+          return;
+        }
+        origImageSrc.set.call(this, val);
+      },
+      configurable: true,
+      enumerable: true,
+    });
+  }
 
   // =========================================================================
   // CONSOLE NOTIFICATION
