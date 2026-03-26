@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Total Privacy Shield</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">
+        <svg width="32" height="32" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M32 4L8 16V32C8 48 18 58 32 62C46 58 56 48 56 32V16L32 4Z" fill="#00ff88" opacity="0.2" stroke="#00ff88" stroke-width="2"/>
+          <path d="M24 32L30 38L42 26" stroke="#00ff88" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <h1>Total Privacy Shield</h1>
+    </div>
+
+    <div class="toggle-section">
+      <span class="toggle-label" id="statusText">Protection Active</span>
+      <label class="switch">
+        <input type="checkbox" id="toggleSwitch" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="protection-grid">
+      <div class="protection-item active" data-protection="ip">
+        <div class="icon">🌐</div>
+        <div class="label">IP & Location</div>
+        <div class="status">Blocked</div>
+      </div>
+      <div class="protection-item active" data-protection="fingerprint">
+        <div class="icon">🖐️</div>
+        <div class="label">Fingerprinting</div>
+        <div class="status">Blocked</div>
+      </div>
+      <div class="protection-item active" data-protection="canvas">
+        <div class="icon">🎨</div>
+        <div class="label">Canvas</div>
+        <div class="status">Spoofed</div>
+      </div>
+      <div class="protection-item active" data-protection="webgl">
+        <div class="icon">🎮</div>
+        <div class="label">WebGL / GPU</div>
+        <div class="status">Blocked</div>
+      </div>
+      <div class="protection-item active" data-protection="webrtc">
+        <div class="icon">📡</div>
+        <div class="label">WebRTC Leak</div>
+        <div class="status">Blocked</div>
+      </div>
+      <div class="protection-item active" data-protection="fonts">
+        <div class="icon">🔤</div>
+        <div class="label">Font Tracking</div>
+        <div class="status">Blocked</div>
+      </div>
+      <div class="protection-item active" data-protection="screen">
+        <div class="icon">🖥️</div>
+        <div class="label">Screen Info</div>
+        <div class="status">Spoofed</div>
+      </div>
+      <div class="protection-item active" data-protection="cookies">
+        <div class="icon">🍪</div>
+        <div class="label">3rd Party Cookies</div>
+        <div class="status">Blocked</div>
+      </div>
+      <div class="protection-item active" data-protection="wifi">
+        <div class="icon">📶</div>
+        <div class="label">Wi-Fi / Network</div>
+        <div class="status">Blocked</div>
+      </div>
+      <div class="protection-item active" data-protection="audio">
+        <div class="icon">🔊</div>
+        <div class="label">Audio Fingerprint</div>
+        <div class="status">Blocked</div>
+      </div>
+      <div class="protection-item active" data-protection="ua">
+        <div class="icon">🕵️</div>
+        <div class="label">Browser / OS</div>
+        <div class="status">Spoofed</div>
+      </div>
+      <div class="protection-item active" data-protection="sensors">
+        <div class="icon">📱</div>
+        <div class="label">Device Sensors</div>
+        <div class="status">Blocked</div>
+      </div>
+    </div>
+
+    <div class="stats-section">
+      <h2>Blocking Stats</h2>
+      <div class="stats-grid">
+        <div class="stat">
+          <div class="stat-value" id="trackersBlocked">0</div>
+          <div class="stat-label">Trackers</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="fingerprintsBlocked">0</div>
+          <div class="stat-label">Fingerprints</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="cookiesBlocked">0</div>
+          <div class="stat-label">Cookies</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="totalBlocked">0</div>
+          <div class="stat-label">Total</div>
+        </div>
+      </div>
+      <button id="resetStats" class="reset-btn">Reset Stats</button>
+    </div>
+
+    <div class="footer">
+      <p>Total Privacy Shield v1.0</p>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
