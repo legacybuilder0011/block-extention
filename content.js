@@ -787,7 +787,62 @@
   }
 
   // =========================================================================
-  // 23. REPORT ALWAYS-ON PROTECTIONS
+  // 23. SPA NAVIGATION DETECTION
+  // Monitor pushState, replaceState, and popstate to detect SPA navigations
+  // Re-scan DOM and send URL updates on each navigation
+  // =========================================================================
+
+  let lastReportedUrl = window.location.href;
+
+  function reportUrlChange() {
+    const currentUrl = window.location.href;
+    if (currentUrl !== lastReportedUrl) {
+      lastReportedUrl = currentUrl;
+      try {
+        window.postMessage({
+          type: "TPS_URL_UPDATE",
+          url: currentUrl,
+        }, "*");
+      } catch (e) {}
+      // Re-scan DOM after SPA navigation to catch new tracking elements
+      setTimeout(scanExistingDOM, 500);
+      setTimeout(scanExistingDOM, 2000);
+    }
+  }
+
+  // Override history.pushState
+  const origPushState = history.pushState;
+  history.pushState = function () {
+    const result = origPushState.apply(this, arguments);
+    reportUrlChange();
+    return result;
+  };
+
+  // Override history.replaceState
+  const origReplaceState = history.replaceState;
+  history.replaceState = function () {
+    const result = origReplaceState.apply(this, arguments);
+    reportUrlChange();
+    return result;
+  };
+
+  // Listen for popstate (back/forward buttons)
+  window.addEventListener("popstate", () => {
+    setTimeout(reportUrlChange, 0);
+  });
+
+  // Also listen for hashchange
+  window.addEventListener("hashchange", () => {
+    setTimeout(reportUrlChange, 0);
+  });
+
+  // Periodic URL check as final fallback (some SPAs use other methods)
+  setInterval(() => {
+    reportUrlChange();
+  }, 2000);
+
+  // =========================================================================
+  // 24. REPORT ALWAYS-ON PROTECTIONS
   // =========================================================================
 
   setTimeout(() => {
