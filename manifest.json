@@ -5,6 +5,8 @@
   "description": "Blocks all tracking: IP/location, device fingerprinting, canvas, WebGL, fonts, screen resolution, WebRTC leaks, Wi-Fi info, and more.",
   "permissions": [
     "storage",
+    "tabs",
+    "activeTab",
     "scripting",
     "webRequest",
     "declarativeNetRequest",

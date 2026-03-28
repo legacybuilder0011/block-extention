@@ -235,13 +235,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return false;
   }
 
+  // Popup tells us the tab URL directly (most reliable)
+  if (message.type === "setTabUrl") {
+    const tabId = message.tabId;
+    if (tabId && message.url) {
+      const td = getTabData(tabId);
+      td.url = message.url;
+      td.domain = getDomain(message.url);
+    }
+    return false;
+  }
+
   // Content script reports a block
   if (message.type === "contentBlock") {
     const tabId = sender?.tab?.id;
     if (tabId) {
-      // Also update URL from sender tab info
+      // Always update URL from sender tab info
       const td = getTabData(tabId);
-      if (sender.tab.url && !td.url) {
+      if (sender.tab.url) {
         td.url = sender.tab.url;
         td.domain = getDomain(sender.tab.url);
       }

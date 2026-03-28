@@ -1,6 +1,6 @@
 /**
- * Total Privacy Shield - Popup v4
- * Per-tab stats with per-protection counts
+ * Total Privacy Shield - Popup v5.1
+ * Per-tab stats with per-protection counts, reliable URL display
  */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -9,6 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const activityLog = document.getElementById("activityLog");
   const protectionItems = document.querySelectorAll(".protection-item");
   let currentTabId = null;
+  let currentTabUrl = null;
 
   // Tab navigation
   document.querySelectorAll(".tab").forEach((tab) => {
@@ -23,6 +24,19 @@ document.addEventListener("DOMContentLoaded", () => {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     if (tabs[0]) {
       currentTabId = tabs[0].id;
+      // Get URL directly from the tab query - most reliable method
+      currentTabUrl = tabs[0].url || tabs[0].pendingUrl || "";
+      // Display immediately so it never says "No site loaded" if we have a URL
+      if (currentTabUrl) {
+        try {
+          siteUrlEl.textContent = new URL(currentTabUrl).hostname;
+          siteUrlEl.title = currentTabUrl;
+        } catch (e) { siteUrlEl.textContent = currentTabUrl; }
+      }
+      // Tell background about this URL so it stores it
+      if (currentTabUrl) {
+        chrome.runtime.sendMessage({ type: "setTabUrl", tabId: currentTabId, url: currentTabUrl });
+      }
       refreshStatus();
     }
   });
@@ -58,12 +72,13 @@ document.addEventListener("DOMContentLoaded", () => {
       toggleSwitch.checked = response.enabled;
       updateProtectionStatus(response.enabled);
 
-      // Site URL
-      if (response.siteUrl) {
+      // Site URL - use response URL, or fallback to the URL we got from chrome.tabs.query
+      const displayUrl = response.siteUrl || currentTabUrl;
+      if (displayUrl) {
         try {
-          siteUrlEl.textContent = new URL(response.siteUrl).hostname;
-          siteUrlEl.title = response.siteUrl;
-        } catch (e) { siteUrlEl.textContent = response.siteUrl; }
+          siteUrlEl.textContent = new URL(displayUrl).hostname;
+          siteUrlEl.title = displayUrl;
+        } catch (e) { siteUrlEl.textContent = displayUrl; }
       } else {
         siteUrlEl.textContent = "No site loaded";
       }
@@ -155,5 +170,17 @@ document.addEventListener("DOMContentLoaded", () => {
     activityLog.innerHTML = html;
   }
 
-  setInterval(refreshStatus, 1000);
+  // Refresh every second, also re-query the tab URL for reliability
+  setInterval(() => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0]) {
+        const newUrl = tabs[0].url || tabs[0].pendingUrl || "";
+        if (newUrl) currentTabUrl = newUrl;
+        if (tabs[0].id !== currentTabId) {
+          currentTabId = tabs[0].id;
+        }
+      }
+      refreshStatus();
+    });
+  }, 1000);
 });
