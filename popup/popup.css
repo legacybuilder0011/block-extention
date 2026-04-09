@@ -39,6 +39,22 @@ body {
 input:checked + .slider { background: #0a2a1a; border-color: #00ff88; }
 input:checked + .slider:before { transform: translateX(20px); background: #00ff88; box-shadow: 0 0 8px rgba(0,255,136,0.5); }
 
+/* Pause bar */
+.pause-bar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 14px; background: #0d1424;
+  border-bottom: 1px solid #1a2035; flex-shrink: 0;
+}
+.pause-btn {
+  background: #1a2035; color: #ffaa00; border: 1px solid #ffaa00;
+  padding: 4px 10px; border-radius: 4px; font-size: 10px;
+  font-weight: 600; cursor: pointer; text-transform: uppercase;
+  letter-spacing: 0.5px; transition: 0.2s;
+}
+.pause-btn:hover { background: #ffaa00; color: #0a0e17; }
+.pause-btn.paused { background: #ffaa00; color: #0a0e17; }
+.pause-hint { font-size: 9px; color: #64748b; }
+
 /* Tabs */
 .tabs { display: flex; border-bottom: 1px solid #1a2035; flex-shrink: 0; }
 .tab {

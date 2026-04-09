@@ -235,6 +235,71 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return false;
   }
 
+  // Pause blocking on a specific site
+  if (message.type === "pauseSite") {
+    const domain = message.domain;
+    const tabId = message.tabId;
+    if (!domain) { sendResponse({ ok: false }); return false; }
+    chrome.storage.local.get(["pausedSites"], (result) => {
+      const list = result.pausedSites || [];
+      if (!list.includes(domain)) list.push(domain);
+      chrome.storage.local.set({ pausedSites: list }, () => {
+        // Immediately write to the tab's localStorage so the next reload picks it up,
+        // then reload the tab so the content script sees the paused state on document_start
+        if (tabId) {
+          try {
+            chrome.scripting.executeScript({
+              target: { tabId },
+              func: (listStr) => {
+                try { localStorage.setItem("TPS_PAUSED_SITES", listStr); } catch (e) {}
+              },
+              args: [JSON.stringify(list)],
+            }).then(() => {
+              chrome.tabs.reload(tabId);
+            }).catch(() => { chrome.tabs.reload(tabId); });
+          } catch (e) { try { chrome.tabs.reload(tabId); } catch (e2) {} }
+        }
+        sendResponse({ ok: true, pausedSites: list });
+      });
+    });
+    return true; // async
+  }
+
+  // Resume blocking on a specific site
+  if (message.type === "resumeSite") {
+    const domain = message.domain;
+    const tabId = message.tabId;
+    if (!domain) { sendResponse({ ok: false }); return false; }
+    chrome.storage.local.get(["pausedSites"], (result) => {
+      const list = (result.pausedSites || []).filter((d) => d !== domain);
+      chrome.storage.local.set({ pausedSites: list }, () => {
+        if (tabId) {
+          try {
+            chrome.scripting.executeScript({
+              target: { tabId },
+              func: (listStr) => {
+                try { localStorage.setItem("TPS_PAUSED_SITES", listStr); } catch (e) {}
+              },
+              args: [JSON.stringify(list)],
+            }).then(() => {
+              chrome.tabs.reload(tabId);
+            }).catch(() => { chrome.tabs.reload(tabId); });
+          } catch (e) { try { chrome.tabs.reload(tabId); } catch (e2) {} }
+        }
+        sendResponse({ ok: true, pausedSites: list });
+      });
+    });
+    return true; // async
+  }
+
+  // Get paused sites list
+  if (message.type === "getPausedSites") {
+    chrome.storage.local.get(["pausedSites"], (result) => {
+      sendResponse({ pausedSites: result.pausedSites || [] });
+    });
+    return true; // async
+  }
+
   // Popup tells us the tab URL directly (most reliable)
   if (message.type === "setTabUrl") {
     const tabId = message.tabId;

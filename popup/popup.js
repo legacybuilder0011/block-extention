@@ -64,6 +64,63 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  // Pause/resume on current site
+  const pauseBtn = document.getElementById("pauseSiteBtn");
+  const pauseHint = document.getElementById("pauseHint");
+  let pausedSites = [];
+
+  function getCurrentDomain() {
+    if (!currentTabUrl) return "";
+    try {
+      return new URL(currentTabUrl).hostname.replace(/^www\./, "");
+    } catch (e) { return ""; }
+  }
+
+  function isCurrentSitePaused() {
+    const host = getCurrentDomain();
+    if (!host) return false;
+    return pausedSites.some((d) => host === d || host.endsWith("." + d));
+  }
+
+  function updatePauseButton() {
+    const paused = isCurrentSitePaused();
+    if (paused) {
+      pauseBtn.textContent = "Resume on this site";
+      pauseBtn.classList.add("paused");
+      pauseHint.textContent = "Blocking is OFF here";
+    } else {
+      pauseBtn.textContent = "Pause on this site";
+      pauseBtn.classList.remove("paused");
+      pauseHint.textContent = "Use when signup/login is blocked";
+    }
+  }
+
+  function refreshPausedList() {
+    chrome.runtime.sendMessage({ type: "getPausedSites" }, (response) => {
+      if (response && response.pausedSites) {
+        pausedSites = response.pausedSites;
+        updatePauseButton();
+      }
+    });
+  }
+
+  pauseBtn.addEventListener("click", () => {
+    const domain = getCurrentDomain();
+    if (!domain || !currentTabId) return;
+    const paused = isCurrentSitePaused();
+    const msgType = paused ? "resumeSite" : "pauseSite";
+    chrome.runtime.sendMessage({ type: msgType, domain, tabId: currentTabId }, (response) => {
+      if (response && response.pausedSites) {
+        pausedSites = response.pausedSites;
+        updatePauseButton();
+        // Close popup - tab is reloading
+        setTimeout(() => window.close(), 200);
+      }
+    });
+  });
+
+  refreshPausedList();
+
   function refreshStatus() {
     if (!currentTabId) return;
     chrome.runtime.sendMessage({ type: "getStatus", tabId: currentTabId }, (response) => {
@@ -181,6 +238,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
       refreshStatus();
+      updatePauseButton();
     });
   }, 1000);
 });

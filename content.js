@@ -2,6 +2,9 @@
  * Total Privacy Shield - Content Script (MAIN world)
  * Runs before any page script to override and block all tracking/fingerprinting APIs.
  * Reports blocks to background via window.postMessage -> content-bridge.js
+ *
+ * Site-aware: checks if current site is in pause list before blocking.
+ * Pause list is set via localStorage "TPS_PAUSED_SITES" by content-bridge.
  */
 
 (function () {
@@ -12,6 +15,71 @@
   // =========================================================================
 
   let blockCount = 0;
+
+  // Check if current site is paused (read from localStorage set by bridge)
+  function currentHost() {
+    try { return window.location.hostname.replace(/^www\./, ""); } catch (e) { return ""; }
+  }
+
+  function isPaused() {
+    try {
+      const raw = localStorage.getItem("TPS_PAUSED_SITES");
+      if (!raw) return false;
+      const list = JSON.parse(raw);
+      if (!Array.isArray(list)) return false;
+      const host = currentHost();
+      // Match exact host or parent domain
+      return list.some((d) => {
+        d = (d || "").toLowerCase();
+        return host === d || host.endsWith("." + d);
+      });
+    } catch (e) { return false; }
+  }
+
+  // Hosts where we should NOT block the site's own cookies/requests
+  // (first-party signals needed for login/session/verification)
+  const FIRST_PARTY_HOSTS = [
+    "facebook.com", "instagram.com", "messenger.com", "whatsapp.com",
+    "fiverr.com", "upwork.com", "freelancer.com",
+    "google.com", "youtube.com", "gmail.com",
+    "twitter.com", "x.com", "linkedin.com",
+    "tiktok.com", "snapchat.com", "pinterest.com",
+    "amazon.com", "ebay.com", "paypal.com", "stripe.com",
+    "microsoft.com", "live.com", "outlook.com",
+    "apple.com", "icloud.com",
+  ];
+  const currentTopHost = currentHost();
+  const isOnFirstPartySite = FIRST_PARTY_HOSTS.some(
+    (h) => currentTopHost === h || currentTopHost.endsWith("." + h)
+  );
+
+  const PAUSED = isPaused();
+
+  if (PAUSED) {
+    console.log(
+      "%c[Total Privacy Shield] PAUSED on " + currentHost() + " - blocking disabled for this site",
+      "color: #ffaa00; font-weight: bold; font-size: 14px;"
+    );
+    // Still report URL changes so popup stays in sync, but don't block anything
+    let lastUrl = window.location.href;
+    function pingUrl() {
+      const cur = window.location.href;
+      if (cur !== lastUrl) {
+        lastUrl = cur;
+        try {
+          window.postMessage({ type: "TPS_URL_UPDATE", url: cur }, "*");
+        } catch (e) {}
+      }
+    }
+    const origPush = history.pushState;
+    history.pushState = function () { const r = origPush.apply(this, arguments); pingUrl(); return r; };
+    const origRep = history.replaceState;
+    history.replaceState = function () { const r = origRep.apply(this, arguments); pingUrl(); return r; };
+    window.addEventListener("popstate", pingUrl);
+    window.addEventListener("hashchange", pingUrl);
+    setInterval(pingUrl, 2000);
+    return; // Skip all blocking code
+  }
 
   function reportBlock(category, url, detail, protection) {
     blockCount++;
@@ -130,60 +198,66 @@
 
   // =========================================================================
   // 4. BLOCK CANVAS FINGERPRINTING
+  // (Skipped on first-party trusted sites - canvas spoofing trips bot detection
+  //  on services like DataDome/PerimeterX used by Fiverr, Instagram signup, etc.)
   // =========================================================================
 
-  const origToDataURL = HTMLCanvasElement.prototype.toDataURL;
-  HTMLCanvasElement.prototype.toDataURL = function () {
-    try {
-      const ctx = this.getContext("2d");
-      if (ctx && this.width > 0 && this.height > 0) {
-        const imageData = ctx.getImageData(0, 0, this.width, this.height);
-        const data = imageData.data;
-        for (let i = 0; i < data.length; i += 4) {
-          data[i] = data[i] ^ (Math.random() * 2 | 0);
-          data[i + 1] = data[i + 1] ^ (Math.random() * 2 | 0);
-          data[i + 2] = data[i + 2] ^ (Math.random() * 2 | 0);
+  if (!isOnFirstPartySite) {
+    const origToDataURL = HTMLCanvasElement.prototype.toDataURL;
+    HTMLCanvasElement.prototype.toDataURL = function () {
+      try {
+        const ctx = this.getContext("2d");
+        if (ctx && this.width > 0 && this.height > 0) {
+          const imageData = ctx.getImageData(0, 0, this.width, this.height);
+          const data = imageData.data;
+          for (let i = 0; i < data.length; i += 4) {
+            data[i] = data[i] ^ (Math.random() * 2 | 0);
+            data[i + 1] = data[i + 1] ^ (Math.random() * 2 | 0);
+            data[i + 2] = data[i + 2] ^ (Math.random() * 2 | 0);
+          }
+          ctx.putImageData(imageData, 0, 0);
+          reportBlock("fingerprint", "canvas://toDataURL", "Canvas fingerprint spoofed", "canvas");
         }
-        ctx.putImageData(imageData, 0, 0);
-        reportBlock("fingerprint", "canvas://toDataURL", "Canvas fingerprint spoofed", "canvas");
+      } catch (e) {}
+      return origToDataURL.apply(this, arguments);
+    };
+
+    const origToBlob = HTMLCanvasElement.prototype.toBlob;
+    HTMLCanvasElement.prototype.toBlob = function (callback, type, quality) {
+      try {
+        const ctx = this.getContext("2d");
+        if (ctx && this.width > 0 && this.height > 0) {
+          const imageData = ctx.getImageData(0, 0, this.width, this.height);
+          const data = imageData.data;
+          for (let i = 0; i < data.length; i += 4) {
+            data[i] = data[i] ^ (Math.random() * 2 | 0);
+            data[i + 1] = data[i + 1] ^ (Math.random() * 2 | 0);
+            data[i + 2] = data[i + 2] ^ (Math.random() * 2 | 0);
+          }
+          ctx.putImageData(imageData, 0, 0);
+          reportBlock("fingerprint", "canvas://toBlob", "Canvas fingerprint spoofed", "canvas");
+        }
+      } catch (e) {}
+      return origToBlob.call(this, callback, type, quality);
+    };
+
+    try {
+      if (typeof OffscreenCanvas !== "undefined") {
+        OffscreenCanvas.prototype.convertToBlob = function () {
+          reportBlock("fingerprint", "canvas://OffscreenCanvas", "OffscreenCanvas blocked", "canvas");
+          return Promise.reject(new DOMException("Blocked by Total Privacy Shield"));
+        };
       }
     } catch (e) {}
-    return origToDataURL.apply(this, arguments);
-  };
-
-  const origToBlob = HTMLCanvasElement.prototype.toBlob;
-  HTMLCanvasElement.prototype.toBlob = function (callback, type, quality) {
-    try {
-      const ctx = this.getContext("2d");
-      if (ctx && this.width > 0 && this.height > 0) {
-        const imageData = ctx.getImageData(0, 0, this.width, this.height);
-        const data = imageData.data;
-        for (let i = 0; i < data.length; i += 4) {
-          data[i] = data[i] ^ (Math.random() * 2 | 0);
-          data[i + 1] = data[i + 1] ^ (Math.random() * 2 | 0);
-          data[i + 2] = data[i + 2] ^ (Math.random() * 2 | 0);
-        }
-        ctx.putImageData(imageData, 0, 0);
-        reportBlock("fingerprint", "canvas://toBlob", "Canvas fingerprint spoofed", "canvas");
-      }
-    } catch (e) {}
-    return origToBlob.call(this, callback, type, quality);
-  };
-
-  try {
-    if (typeof OffscreenCanvas !== "undefined") {
-      OffscreenCanvas.prototype.convertToBlob = function () {
-        reportBlock("fingerprint", "canvas://OffscreenCanvas", "OffscreenCanvas blocked", "canvas");
-        return Promise.reject(new DOMException("Blocked by Total Privacy Shield"));
-      };
-    }
-  } catch (e) {}
+  }
 
   // =========================================================================
   // 5. BLOCK / SPOOF WebGL FINGERPRINTING (GPU Info)
+  // (Skipped on first-party sites for the same bot-detection reason.)
   // =========================================================================
 
   const blockWebGLParams = () => {
+    if (isOnFirstPartySite) return;
     const getParamHandler = {
       apply(target, thisArg, args) {
         const param = args[0];
@@ -218,19 +292,22 @@
 
   // =========================================================================
   // 6. SPOOF NAVIGATOR / BROWSER FINGERPRINT
+  // (Skipped on first-party sites - spoofed UA trips bot detection)
   // =========================================================================
 
-  const spoofedUA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+  if (!isOnFirstPartySite) {
+    const spoofedUA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
-  defineReadonly(navigator, "userAgent", spoofedUA);
-  defineReadonly(navigator, "appVersion", "5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
-  defineReadonly(navigator, "platform", "Win32");
-  defineReadonly(navigator, "vendor", "Google Inc.");
-  defineReadonly(navigator, "language", "en-US");
-  defineReadonly(navigator, "languages", ["en-US", "en"]);
-  defineReadonly(navigator, "hardwareConcurrency", 4);
-  defineReadonly(navigator, "deviceMemory", 8);
-  defineReadonly(navigator, "maxTouchPoints", 0);
+    defineReadonly(navigator, "userAgent", spoofedUA);
+    defineReadonly(navigator, "appVersion", "5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+    defineReadonly(navigator, "platform", "Win32");
+    defineReadonly(navigator, "vendor", "Google Inc.");
+    defineReadonly(navigator, "language", "en-US");
+    defineReadonly(navigator, "languages", ["en-US", "en"]);
+    defineReadonly(navigator, "hardwareConcurrency", 4);
+    defineReadonly(navigator, "deviceMemory", 8);
+    defineReadonly(navigator, "maxTouchPoints", 0);
+  }
 
   // Block navigator.connection (Wi-Fi / network detection)
   defineReadonly(navigator, "connection", undefined);
@@ -269,10 +346,10 @@
   } catch (e) {}
 
   // =========================================================================
-  // 8. BLOCK AUDIO FINGERPRINTING
+  // 8. BLOCK AUDIO FINGERPRINTING (skipped on first-party sites)
   // =========================================================================
 
-  try {
+  if (!isOnFirstPartySite) try {
     const origGetFloat = AnalyserNode.prototype.getFloatFrequencyData;
     AnalyserNode.prototype.getFloatFrequencyData = function (array) {
       origGetFloat.call(this, array);
@@ -480,13 +557,39 @@
     /moatads\.com/i,
     /2mdn\.net/i,
     /bidswitch\.net/i,
-    /instagram\.com\/logging/i,
-    /instagram\.com\/client_event/i,
-    /i\.instagram\.com\/api\/v1\/logging/i,
   ];
 
   function isTrackingURL(url) {
     if (!url || typeof url !== "string") return false;
+    // First-party exception: don't block requests to the site you're currently on.
+    // Login/session endpoints on fiverr.com should work when you're on fiverr.com.
+    try {
+      // Resolve relative URLs against current location
+      const absolute = url.startsWith("http") ? url : new URL(url, window.location.href).href;
+      const urlHost = new URL(absolute).hostname.replace(/^www\./, "");
+      const pageHost = currentHost();
+      if (pageHost && (urlHost === pageHost || urlHost.endsWith("." + pageHost) || pageHost.endsWith("." + urlHost))) {
+        return false; // Same-origin / first-party - allow
+      }
+      // Also allow if both are on a first-party trusted host (e.g. facebook.com <-> fbcdn.net ecosystem)
+      if (isOnFirstPartySite) {
+        const siblingHosts = {
+          "facebook.com": ["fbcdn.net", "facebook.net", "messenger.com", "fb.com"],
+          "instagram.com": ["cdninstagram.com", "fbcdn.net"],
+          "fiverr.com": ["fiverrcdn.com"],
+          "google.com": ["gstatic.com", "googleusercontent.com", "googleapis.com", "youtube.com", "ytimg.com"],
+          "amazon.com": ["media-amazon.com", "ssl-images-amazon.com"],
+        };
+        for (const [main, siblings] of Object.entries(siblingHosts)) {
+          if (pageHost === main || pageHost.endsWith("." + main)) {
+            if (siblings.some((s) => urlHost === s || urlHost.endsWith("." + s))) {
+              return false;
+            }
+          }
+        }
+      }
+    } catch (e) {}
+
     for (const pattern of TRACKING_URL_PATTERNS) {
       if (pattern.test(url)) return true;
     }
@@ -760,14 +863,21 @@
         return origCookieDesc.get.call(this);
       },
       set: function (val) {
-        // Block third-party cookie sets and tracking cookies
-        const lower = (val || "").toLowerCase();
+        // If we're on a site that needs its own cookies for login (first-party),
+        // allow ALL cookies on its own domain. Still blocks third-party cookies
+        // from iframes/scripts loaded from tracker domains.
+        if (isOnFirstPartySite) {
+          return origCookieDesc.set.call(this, val);
+        }
+
+        // Only block pure third-party tracker cookies (Google Analytics, Hotjar, etc.)
+        // that are set by scripts embedded on unrelated sites
         const trackingCookies = [
-          "_ga", "_gid", "_gat", "_fbp", "_fbc", "fr", "datr", "sb",
+          "_ga", "_gid", "_gat",
           "_gcl", "_uetsid", "_uetvid", "NID", "IDE", "MUID",
           "_hjid", "_hjSession", "_clck", "_clsk",
           "mp_", "ajs_", "amplitude_id",
-          "__stripe", "_pin_unauth", "sc_at",
+          "_pin_unauth",
         ];
         const cookieName = val.split("=")[0].trim();
         const isTrackingCookie = trackingCookies.some((tc) =>
@@ -779,7 +889,6 @@
           return; // Don't set it
         }
 
-        // Allow the cookie but report
         return origCookieDesc.set.call(this, val);
       },
       configurable: true,
