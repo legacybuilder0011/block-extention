@@ -780,7 +780,8 @@
     "action": { "type": "block" },
     "condition": {
       "urlFilter": "/retarget",
-      "resourceTypes": ["script", "xmlhttprequest", "image", "ping", "other"]
+      "resourceTypes": ["script", "xmlhttprequest", "image", "ping", "other"],
+      "excludedInitiatorDomains": ["fiverr.com", "upwork.com", "facebook.com", "instagram.com", "messenger.com", "whatsapp.com", "google.com", "youtube.com", "gmail.com", "twitter.com", "x.com", "linkedin.com", "amazon.com", "paypal.com", "stripe.com", "microsoft.com", "live.com", "outlook.com", "apple.com", "icloud.com", "ebay.com", "tiktok.com", "snapchat.com", "pinterest.com", "reddit.com", "netflix.com", "spotify.com"]
     }
   },
   {
@@ -789,7 +790,8 @@
     "action": { "type": "block" },
     "condition": {
       "urlFilter": "/remarketing",
-      "resourceTypes": ["script", "xmlhttprequest", "image", "ping", "other"]
+      "resourceTypes": ["script", "xmlhttprequest", "image", "ping", "other"],
+      "excludedInitiatorDomains": ["fiverr.com", "upwork.com", "facebook.com", "instagram.com", "messenger.com", "whatsapp.com", "google.com", "youtube.com", "gmail.com", "twitter.com", "x.com", "linkedin.com", "amazon.com", "paypal.com", "stripe.com", "microsoft.com", "live.com", "outlook.com", "apple.com", "icloud.com", "ebay.com", "tiktok.com", "snapchat.com", "pinterest.com", "reddit.com", "netflix.com", "spotify.com"]
     }
   },
   {
@@ -798,16 +800,8 @@
     "action": { "type": "block" },
     "condition": {
       "urlFilter": "/conversion",
-      "resourceTypes": ["script", "xmlhttprequest", "image", "ping", "other"]
-    }
-  },
-  {
-    "id": 115,
-    "priority": 1,
-    "action": { "type": "block" },
-    "condition": {
-      "urlFilter": "pixel.js",
-      "resourceTypes": ["script"]
+      "resourceTypes": ["script", "xmlhttprequest", "image", "ping", "other"],
+      "excludedInitiatorDomains": ["fiverr.com", "upwork.com", "facebook.com", "instagram.com", "messenger.com", "whatsapp.com", "google.com", "youtube.com", "gmail.com", "twitter.com", "x.com", "linkedin.com", "amazon.com", "paypal.com", "stripe.com", "microsoft.com", "live.com", "outlook.com", "apple.com", "icloud.com", "ebay.com", "tiktok.com", "snapchat.com", "pinterest.com", "reddit.com", "netflix.com", "spotify.com"]
     }
   },
   {
@@ -816,7 +810,8 @@
     "action": { "type": "block" },
     "condition": {
       "urlFilter": "/tracking",
-      "resourceTypes": ["script", "xmlhttprequest", "image", "ping", "other"]
+      "resourceTypes": ["script", "xmlhttprequest", "image", "ping", "other"],
+      "excludedInitiatorDomains": ["fiverr.com", "upwork.com", "facebook.com", "instagram.com", "messenger.com", "whatsapp.com", "google.com", "youtube.com", "gmail.com", "twitter.com", "x.com", "linkedin.com", "amazon.com", "paypal.com", "stripe.com", "microsoft.com", "live.com", "outlook.com", "apple.com", "icloud.com", "ebay.com", "tiktok.com", "snapchat.com", "pinterest.com", "reddit.com", "netflix.com", "spotify.com"]
     }
   },
   {
@@ -825,7 +820,8 @@
     "action": { "type": "block" },
     "condition": {
       "urlFilter": "/collect-data",
-      "resourceTypes": ["xmlhttprequest", "ping", "other"]
+      "resourceTypes": ["xmlhttprequest", "ping", "other"],
+      "excludedInitiatorDomains": ["fiverr.com", "upwork.com", "facebook.com", "instagram.com", "messenger.com", "whatsapp.com", "google.com", "youtube.com", "gmail.com", "twitter.com", "x.com", "linkedin.com", "amazon.com", "paypal.com", "stripe.com", "microsoft.com", "live.com", "outlook.com", "apple.com", "icloud.com", "ebay.com", "tiktok.com", "snapchat.com", "pinterest.com", "reddit.com", "netflix.com", "spotify.com"]
     }
   },
   {
@@ -834,7 +830,8 @@
     "action": { "type": "block" },
     "condition": {
       "urlFilter": "/device-fingerprint",
-      "resourceTypes": ["script", "xmlhttprequest", "other"]
+      "resourceTypes": ["script", "xmlhttprequest", "other"],
+      "excludedInitiatorDomains": ["fiverr.com", "upwork.com", "facebook.com", "instagram.com", "messenger.com", "whatsapp.com", "google.com", "youtube.com", "gmail.com", "twitter.com", "x.com", "linkedin.com", "amazon.com", "paypal.com", "stripe.com", "microsoft.com", "live.com", "outlook.com", "apple.com", "icloud.com", "ebay.com", "tiktok.com", "snapchat.com", "pinterest.com", "reddit.com", "netflix.com", "spotify.com"]
     }
   },
   {
@@ -843,7 +840,8 @@
     "action": { "type": "block" },
     "condition": {
       "urlFilter": "/browser-fingerprint",
-      "resourceTypes": ["script", "xmlhttprequest", "other"]
+      "resourceTypes": ["script", "xmlhttprequest", "other"],
+      "excludedInitiatorDomains": ["fiverr.com", "upwork.com", "facebook.com", "instagram.com", "messenger.com", "whatsapp.com", "google.com", "youtube.com", "gmail.com", "twitter.com", "x.com", "linkedin.com", "amazon.com", "paypal.com", "stripe.com", "microsoft.com", "live.com", "outlook.com", "apple.com", "icloud.com", "ebay.com", "tiktok.com", "snapchat.com", "pinterest.com", "reddit.com", "netflix.com", "spotify.com"]
     }
   },
   {
@@ -852,7 +850,8 @@
     "action": { "type": "block" },
     "condition": {
       "urlFilter": "/audiencemanager",
-      "resourceTypes": ["script", "xmlhttprequest", "image", "ping", "other"]
+      "resourceTypes": ["script", "xmlhttprequest", "image", "ping", "other"],
+      "excludedInitiatorDomains": ["fiverr.com", "upwork.com", "facebook.com", "instagram.com", "messenger.com", "whatsapp.com", "google.com", "youtube.com", "gmail.com", "twitter.com", "x.com", "linkedin.com", "amazon.com", "paypal.com", "stripe.com", "microsoft.com", "live.com", "outlook.com", "apple.com", "icloud.com", "ebay.com", "tiktok.com", "snapchat.com", "pinterest.com", "reddit.com", "netflix.com", "spotify.com"]
     }
   },
 
@@ -1097,10 +1096,6 @@
     "action": {
       "type": "modifyHeaders",
       "requestHeaders": [
-        { "header": "sec-ch-ua", "operation": "remove" },
-        { "header": "sec-ch-ua-mobile", "operation": "remove" },
-        { "header": "sec-ch-ua-platform", "operation": "remove" },
-        { "header": "sec-ch-ua-platform-version", "operation": "remove" },
         { "header": "sec-ch-ua-arch", "operation": "remove" },
         { "header": "sec-ch-ua-bitness", "operation": "remove" },
         { "header": "sec-ch-ua-model", "operation": "remove" },
@@ -1112,7 +1107,9 @@
     },
     "condition": {
       "urlFilter": "*",
-      "resourceTypes": ["main_frame", "sub_frame", "script", "xmlhttprequest", "image", "font", "stylesheet", "ping", "other"]
+      "resourceTypes": ["main_frame", "sub_frame", "script", "xmlhttprequest", "image", "font", "stylesheet", "ping", "other"],
+      "excludedInitiatorDomains": ["fiverr.com", "upwork.com", "facebook.com", "instagram.com", "messenger.com", "whatsapp.com", "google.com", "youtube.com", "gmail.com", "twitter.com", "x.com", "linkedin.com", "amazon.com", "paypal.com", "stripe.com", "microsoft.com", "live.com", "outlook.com", "apple.com", "icloud.com", "ebay.com", "tiktok.com", "snapchat.com", "pinterest.com", "reddit.com", "netflix.com", "spotify.com"],
+      "excludedRequestDomains": ["fiverr.com", "fiverrcdn.com", "upwork.com", "facebook.com", "fbcdn.net", "facebook.net", "instagram.com", "cdninstagram.com", "messenger.com", "whatsapp.com", "google.com", "gstatic.com", "googleusercontent.com", "googleapis.com", "youtube.com", "ytimg.com", "gmail.com", "twitter.com", "twimg.com", "x.com", "linkedin.com", "licdn.com", "amazon.com", "media-amazon.com", "ssl-images-amazon.com", "paypal.com", "paypalobjects.com", "stripe.com", "stripe.network", "microsoft.com", "msecnd.net", "live.com", "outlook.com", "apple.com", "icloud.com", "ebay.com", "ebaystatic.com", "tiktok.com", "tiktokcdn.com", "snapchat.com", "sc-cdn.net", "pinterest.com", "pinimg.com", "reddit.com", "redditstatic.com", "redditmedia.com", "netflix.com", "nflxext.com", "spotify.com", "scdn.co", "perimeterx.net", "px-cdn.net", "px-cloud.net", "datadome.co", "arkoselabs.com", "hcaptcha.com", "recaptcha.net", "google.com/recaptcha"]
     }
   },
   {
@@ -1127,7 +1124,8 @@
     "condition": {
       "urlFilter": "*",
       "domainType": "thirdParty",
-      "resourceTypes": ["sub_frame", "script", "xmlhttprequest", "image", "font", "stylesheet", "ping", "other"]
+      "resourceTypes": ["sub_frame", "script", "xmlhttprequest", "image", "font", "stylesheet", "ping", "other"],
+      "excludedInitiatorDomains": ["fiverr.com", "upwork.com", "facebook.com", "instagram.com", "messenger.com", "whatsapp.com", "google.com", "youtube.com", "gmail.com", "twitter.com", "x.com", "linkedin.com", "amazon.com", "paypal.com", "stripe.com", "microsoft.com", "live.com", "outlook.com", "apple.com", "icloud.com", "ebay.com", "tiktok.com", "snapchat.com", "pinterest.com", "reddit.com", "netflix.com", "spotify.com"]
     }
   },
   {
@@ -1142,7 +1140,8 @@
     "condition": {
       "urlFilter": "*",
       "domainType": "thirdParty",
-      "resourceTypes": ["sub_frame", "script", "xmlhttprequest", "image", "font", "stylesheet", "ping", "other"]
+      "resourceTypes": ["sub_frame", "script", "xmlhttprequest", "image", "font", "stylesheet", "ping", "other"],
+      "excludedInitiatorDomains": ["fiverr.com", "upwork.com", "facebook.com", "instagram.com", "messenger.com", "whatsapp.com", "google.com", "youtube.com", "gmail.com", "twitter.com", "x.com", "linkedin.com", "amazon.com", "paypal.com", "stripe.com", "microsoft.com", "live.com", "outlook.com", "apple.com", "icloud.com", "ebay.com", "tiktok.com", "snapchat.com", "pinterest.com", "reddit.com", "netflix.com", "spotify.com"]
     }
   },
   {
@@ -1158,38 +1157,11 @@
     "condition": {
       "urlFilter": "*",
       "domainType": "thirdParty",
-      "resourceTypes": ["sub_frame", "script", "xmlhttprequest", "image", "font", "stylesheet", "ping", "other"]
-    }
-  },
-  {
-    "id": 204,
-    "priority": 2,
-    "action": {
-      "type": "modifyHeaders",
-      "requestHeaders": [
-        { "header": "user-agent", "operation": "set", "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" }
-      ]
-    },
-    "condition": {
-      "urlFilter": "*",
-      "resourceTypes": ["main_frame", "sub_frame", "script", "xmlhttprequest", "image", "font", "stylesheet", "ping", "other"]
+      "resourceTypes": ["sub_frame", "script", "xmlhttprequest", "image", "font", "stylesheet", "ping", "other"],
+      "excludedInitiatorDomains": ["fiverr.com", "upwork.com", "facebook.com", "instagram.com", "messenger.com", "whatsapp.com", "google.com", "youtube.com", "gmail.com", "twitter.com", "x.com", "linkedin.com", "amazon.com", "paypal.com", "stripe.com", "microsoft.com", "live.com", "outlook.com", "apple.com", "icloud.com", "ebay.com", "tiktok.com", "snapchat.com", "pinterest.com", "reddit.com", "netflix.com", "spotify.com"]
     }
   },
 
-  {
-    "id": 205,
-    "priority": 2,
-    "action": {
-      "type": "modifyHeaders",
-      "responseHeaders": [
-        { "header": "set-cookie", "operation": "remove" }
-      ]
-    },
-    "condition": {
-      "urlFilter": "*",
-      "resourceTypes": ["main_frame", "sub_frame", "script", "xmlhttprequest", "image", "font", "stylesheet", "ping", "other"]
-    }
-  },
   {
     "id": 206,
     "priority": 2,
@@ -1202,7 +1174,8 @@
     "condition": {
       "urlFilter": "*",
       "domainType": "thirdParty",
-      "resourceTypes": ["sub_frame", "script", "xmlhttprequest", "image", "font", "stylesheet", "ping", "other"]
+      "resourceTypes": ["sub_frame", "script", "xmlhttprequest", "image", "font", "stylesheet", "ping", "other"],
+      "excludedInitiatorDomains": ["fiverr.com", "upwork.com", "facebook.com", "instagram.com", "messenger.com", "whatsapp.com", "google.com", "youtube.com", "gmail.com", "twitter.com", "x.com", "linkedin.com", "amazon.com", "paypal.com", "stripe.com", "microsoft.com", "live.com", "outlook.com", "apple.com", "icloud.com", "ebay.com", "tiktok.com", "snapchat.com", "pinterest.com", "reddit.com", "netflix.com", "spotify.com"]
     }
   },
 
