@@ -106,6 +106,17 @@
   }
 
   // =========================================================================
+  // SECTIONS 1-18: JavaScript API overrides (fingerprint spoofing, WebRTC, etc.)
+  // ALL of these are skipped on first-party trusted sites (Fiverr, Facebook,
+  // Instagram, Google, etc.) because bot-detection services like PerimeterX
+  // and DataDome use these APIs to verify you're human. Blocking any of them
+  // causes "Failed to display challenge" errors and login/signup failures.
+  // Third-party tracker blocking (sections 19-22) stays active.
+  // =========================================================================
+
+  if (!isOnFirstPartySite) {
+
+  // =========================================================================
   // 1. BLOCK WebRTC (IP Leak Prevention)
   // =========================================================================
 
@@ -198,66 +209,60 @@
 
   // =========================================================================
   // 4. BLOCK CANVAS FINGERPRINTING
-  // (Skipped on first-party trusted sites - canvas spoofing trips bot detection
-  //  on services like DataDome/PerimeterX used by Fiverr, Instagram signup, etc.)
   // =========================================================================
 
-  if (!isOnFirstPartySite) {
-    const origToDataURL = HTMLCanvasElement.prototype.toDataURL;
-    HTMLCanvasElement.prototype.toDataURL = function () {
-      try {
-        const ctx = this.getContext("2d");
-        if (ctx && this.width > 0 && this.height > 0) {
-          const imageData = ctx.getImageData(0, 0, this.width, this.height);
-          const data = imageData.data;
-          for (let i = 0; i < data.length; i += 4) {
-            data[i] = data[i] ^ (Math.random() * 2 | 0);
-            data[i + 1] = data[i + 1] ^ (Math.random() * 2 | 0);
-            data[i + 2] = data[i + 2] ^ (Math.random() * 2 | 0);
-          }
-          ctx.putImageData(imageData, 0, 0);
-          reportBlock("fingerprint", "canvas://toDataURL", "Canvas fingerprint spoofed", "canvas");
-        }
-      } catch (e) {}
-      return origToDataURL.apply(this, arguments);
-    };
-
-    const origToBlob = HTMLCanvasElement.prototype.toBlob;
-    HTMLCanvasElement.prototype.toBlob = function (callback, type, quality) {
-      try {
-        const ctx = this.getContext("2d");
-        if (ctx && this.width > 0 && this.height > 0) {
-          const imageData = ctx.getImageData(0, 0, this.width, this.height);
-          const data = imageData.data;
-          for (let i = 0; i < data.length; i += 4) {
-            data[i] = data[i] ^ (Math.random() * 2 | 0);
-            data[i + 1] = data[i + 1] ^ (Math.random() * 2 | 0);
-            data[i + 2] = data[i + 2] ^ (Math.random() * 2 | 0);
-          }
-          ctx.putImageData(imageData, 0, 0);
-          reportBlock("fingerprint", "canvas://toBlob", "Canvas fingerprint spoofed", "canvas");
-        }
-      } catch (e) {}
-      return origToBlob.call(this, callback, type, quality);
-    };
-
+  const origToDataURL = HTMLCanvasElement.prototype.toDataURL;
+  HTMLCanvasElement.prototype.toDataURL = function () {
     try {
-      if (typeof OffscreenCanvas !== "undefined") {
-        OffscreenCanvas.prototype.convertToBlob = function () {
-          reportBlock("fingerprint", "canvas://OffscreenCanvas", "OffscreenCanvas blocked", "canvas");
-          return Promise.reject(new DOMException("Blocked by Total Privacy Shield"));
-        };
+      const ctx = this.getContext("2d");
+      if (ctx && this.width > 0 && this.height > 0) {
+        const imageData = ctx.getImageData(0, 0, this.width, this.height);
+        const data = imageData.data;
+        for (let i = 0; i < data.length; i += 4) {
+          data[i] = data[i] ^ (Math.random() * 2 | 0);
+          data[i + 1] = data[i + 1] ^ (Math.random() * 2 | 0);
+          data[i + 2] = data[i + 2] ^ (Math.random() * 2 | 0);
+        }
+        ctx.putImageData(imageData, 0, 0);
+        reportBlock("fingerprint", "canvas://toDataURL", "Canvas fingerprint spoofed", "canvas");
       }
     } catch (e) {}
-  }
+    return origToDataURL.apply(this, arguments);
+  };
+
+  const origToBlob = HTMLCanvasElement.prototype.toBlob;
+  HTMLCanvasElement.prototype.toBlob = function (callback, type, quality) {
+    try {
+      const ctx = this.getContext("2d");
+      if (ctx && this.width > 0 && this.height > 0) {
+        const imageData = ctx.getImageData(0, 0, this.width, this.height);
+        const data = imageData.data;
+        for (let i = 0; i < data.length; i += 4) {
+          data[i] = data[i] ^ (Math.random() * 2 | 0);
+          data[i + 1] = data[i + 1] ^ (Math.random() * 2 | 0);
+          data[i + 2] = data[i + 2] ^ (Math.random() * 2 | 0);
+        }
+        ctx.putImageData(imageData, 0, 0);
+        reportBlock("fingerprint", "canvas://toBlob", "Canvas fingerprint spoofed", "canvas");
+      }
+    } catch (e) {}
+    return origToBlob.call(this, callback, type, quality);
+  };
+
+  try {
+    if (typeof OffscreenCanvas !== "undefined") {
+      OffscreenCanvas.prototype.convertToBlob = function () {
+        reportBlock("fingerprint", "canvas://OffscreenCanvas", "OffscreenCanvas blocked", "canvas");
+        return Promise.reject(new DOMException("Blocked by Total Privacy Shield"));
+      };
+    }
+  } catch (e) {}
 
   // =========================================================================
   // 5. BLOCK / SPOOF WebGL FINGERPRINTING (GPU Info)
-  // (Skipped on first-party sites for the same bot-detection reason.)
   // =========================================================================
 
   const blockWebGLParams = () => {
-    if (isOnFirstPartySite) return;
     const getParamHandler = {
       apply(target, thisArg, args) {
         const param = args[0];
@@ -292,22 +297,19 @@
 
   // =========================================================================
   // 6. SPOOF NAVIGATOR / BROWSER FINGERPRINT
-  // (Skipped on first-party sites - spoofed UA trips bot detection)
   // =========================================================================
 
-  if (!isOnFirstPartySite) {
-    const spoofedUA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+  const spoofedUA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
-    defineReadonly(navigator, "userAgent", spoofedUA);
-    defineReadonly(navigator, "appVersion", "5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
-    defineReadonly(navigator, "platform", "Win32");
-    defineReadonly(navigator, "vendor", "Google Inc.");
-    defineReadonly(navigator, "language", "en-US");
-    defineReadonly(navigator, "languages", ["en-US", "en"]);
-    defineReadonly(navigator, "hardwareConcurrency", 4);
-    defineReadonly(navigator, "deviceMemory", 8);
-    defineReadonly(navigator, "maxTouchPoints", 0);
-  }
+  defineReadonly(navigator, "userAgent", spoofedUA);
+  defineReadonly(navigator, "appVersion", "5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+  defineReadonly(navigator, "platform", "Win32");
+  defineReadonly(navigator, "vendor", "Google Inc.");
+  defineReadonly(navigator, "language", "en-US");
+  defineReadonly(navigator, "languages", ["en-US", "en"]);
+  defineReadonly(navigator, "hardwareConcurrency", 4);
+  defineReadonly(navigator, "deviceMemory", 8);
+  defineReadonly(navigator, "maxTouchPoints", 0);
 
   // Block navigator.connection (Wi-Fi / network detection)
   defineReadonly(navigator, "connection", undefined);
@@ -346,10 +348,10 @@
   } catch (e) {}
 
   // =========================================================================
-  // 8. BLOCK AUDIO FINGERPRINTING (skipped on first-party sites)
+  // 8. BLOCK AUDIO FINGERPRINTING
   // =========================================================================
 
-  if (!isOnFirstPartySite) try {
+  try {
     const origGetFloat = AnalyserNode.prototype.getFloatFrequencyData;
     AnalyserNode.prototype.getFloatFrequencyData = function (array) {
       origGetFloat.call(this, array);
@@ -472,8 +474,11 @@
     if (navigator.gpu) defineReadonly(navigator, "gpu", undefined);
   } catch (e) {}
 
+  } // end if (!isOnFirstPartySite) - sections 1-18 skipped on trusted first-party sites
+
   // =========================================================================
   // 19. INTERCEPT XHR & FETCH TO BLOCK TRACKING REQUESTS
+  // (Always active, but skips same-origin and sibling CDN requests)
   // =========================================================================
 
   const TRACKING_URL_PATTERNS = [
@@ -698,6 +703,31 @@
 
   function isTrackingScript(src) {
     if (!src) return false;
+    // First-party exception: never flag scripts from the page's own host or sibling CDNs
+    try {
+      const absolute = src.startsWith("http") ? src : new URL(src, window.location.href).href;
+      const urlHost = new URL(absolute).hostname.replace(/^www\./, "");
+      const pageHost = currentHost();
+      if (pageHost && (urlHost === pageHost || urlHost.endsWith("." + pageHost) || pageHost.endsWith("." + urlHost))) {
+        return false;
+      }
+      if (isOnFirstPartySite) {
+        const siblingHosts = {
+          "facebook.com": ["fbcdn.net", "facebook.net", "messenger.com", "fb.com"],
+          "instagram.com": ["cdninstagram.com", "fbcdn.net"],
+          "fiverr.com": ["fiverrcdn.com"],
+          "google.com": ["gstatic.com", "googleusercontent.com", "googleapis.com", "youtube.com", "ytimg.com"],
+          "amazon.com": ["media-amazon.com", "ssl-images-amazon.com"],
+        };
+        for (const [main, siblings] of Object.entries(siblingHosts)) {
+          if (pageHost === main || pageHost.endsWith("." + main)) {
+            if (siblings.some((s) => urlHost === s || urlHost.endsWith("." + s))) {
+              return false;
+            }
+          }
+        }
+      }
+    } catch (e) {}
     for (const p of TRACKING_SCRIPT_PATTERNS) {
       if (p.test(src)) return true;
     }
@@ -721,11 +751,12 @@
             const c = classifyTracker(src);
             reportBlock(c.category, src, c.detail + " (script tag)", c.protection);
           }
-          // Check inline tracking code
-          else if (text.includes("gtag(") || text.includes("fbq(") ||
+          // Check inline tracking code - skip on first-party trusted sites
+          // because Fiverr/IG/FB own scripts often contain these patterns
+          else if (!isOnFirstPartySite && (text.includes("gtag(") || text.includes("fbq(") ||
                    text.includes("_gaq.push") || text.includes("ga(") ||
                    text.includes("mixpanel.track") || text.includes("analytics.track") ||
-                   text.includes("hj(") || text.includes("clarity(")) {
+                   text.includes("hj(") || text.includes("clarity("))) {
             node.type = "text/blocked";
             node.textContent = "/* Blocked by Total Privacy Shield */";
             reportBlock("tracker", window.location.href, "Inline tracking script blocked", "ads_scripts");
@@ -951,22 +982,31 @@
   }, 2000);
 
   // =========================================================================
-  // 24. REPORT ALWAYS-ON PROTECTIONS
+  // 24. REPORT ALWAYS-ON PROTECTIONS (only on non-first-party sites)
   // =========================================================================
 
-  setTimeout(() => {
-    reportBlock("fingerprint", "spoof://screen", "Screen 1920x1080, DPR 1", "screen");
-    reportBlock("fingerprint", "spoof://userAgent", "Chrome 120 / Windows 10", "browser_os");
-    reportBlock("tracker", "block://wifi-network", "NetworkInfo API blocked", "wifi_network");
-    reportBlock("fingerprint", "block://fonts", "Font enumeration blocked", "font");
-    reportBlock("fingerprint", "block://clientHints", "Client Hints stripped", "browser_os");
-    reportBlock("fingerprint", "block://sensors-api", "Motion/orientation blocked", "sensors");
-    reportBlock("tracker", "block://geolocation-api", "Geolocation API blocked", "ip_location");
-    reportBlock("tracker", "block://webrtc-api", "WebRTC/RTCPeerConnection blocked", "webrtc");
-  }, 100);
+  if (!isOnFirstPartySite) {
+    setTimeout(() => {
+      reportBlock("fingerprint", "spoof://screen", "Screen 1920x1080, DPR 1", "screen");
+      reportBlock("fingerprint", "spoof://userAgent", "Chrome 120 / Windows 10", "browser_os");
+      reportBlock("tracker", "block://wifi-network", "NetworkInfo API blocked", "wifi_network");
+      reportBlock("fingerprint", "block://fonts", "Font enumeration blocked", "font");
+      reportBlock("fingerprint", "block://clientHints", "Client Hints stripped", "browser_os");
+      reportBlock("fingerprint", "block://sensors-api", "Motion/orientation blocked", "sensors");
+      reportBlock("tracker", "block://geolocation-api", "Geolocation API blocked", "ip_location");
+      reportBlock("tracker", "block://webrtc-api", "WebRTC/RTCPeerConnection blocked", "webrtc");
+    }, 100);
+  }
 
-  console.log(
-    "%c[Total Privacy Shield] Active - All tracking and fingerprinting blocked",
-    "color: #00ff88; font-weight: bold; font-size: 14px;"
-  );
+  if (isOnFirstPartySite) {
+    console.log(
+      "%c[Total Privacy Shield] First-party site (" + currentTopHost + ") - only blocking third-party trackers. Fingerprint APIs untouched.",
+      "color: #00ff88; font-weight: bold; font-size: 13px;"
+    );
+  } else {
+    console.log(
+      "%c[Total Privacy Shield] Active - full blocking enabled",
+      "color: #00ff88; font-weight: bold; font-size: 14px;"
+    );
+  }
 })();
