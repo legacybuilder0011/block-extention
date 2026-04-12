@@ -73,6 +73,31 @@
     (h) => currentTopHost === h || currentTopHost.endsWith("." + h)
   );
 
+  // Hosts that serve bot-detection / captcha iframes. When the CURRENT frame
+  // (not the top frame) is one of these, we must leave every fingerprinting API
+  // untouched so the challenge can read real values and validate the user.
+  // The main page's spoofing still runs — only the challenge iframe is exempted.
+  const BOT_DETECTION_HOSTS = [
+    "perimeterx.net", "px-cdn.net", "px-cloud.net", "px-client.net", "pxchk.net",
+    "datadome.co",
+    "hcaptcha.com",
+    "recaptcha.net",
+    "arkoselabs.com", "funcaptcha.com",
+    "challenges.cloudflare.com",
+  ];
+  const currentFrameHost = currentHost();
+  const currentFrameHref = (function () { try { return window.location.href || ""; } catch (e) { return ""; } })();
+  const IN_BOT_DETECTION_FRAME = (function () {
+    if (BOT_DETECTION_HOSTS.some((h) => currentFrameHost === h || currentFrameHost.endsWith("." + h))) return true;
+    // reCAPTCHA is served from www.google.com/recaptcha/*
+    if (/\/recaptcha\//i.test(currentFrameHref)) return true;
+    // Any iframe whose host literally contains "captcha" is almost certainly a challenge frame
+    if (/captcha/i.test(currentFrameHost)) return true;
+    // Fiverr serves its own PX proxy at fiverr.com/px/* — when this path is loaded as a frame
+    if (/\/px\//i.test(currentFrameHref) && window.top !== window.self) return true;
+    return false;
+  })();
+
   const PAUSED = isPaused();
 
   if (PAUSED) {
@@ -127,14 +152,16 @@
 
   // =========================================================================
   // SECTIONS 1-18: JavaScript API overrides (fingerprint spoofing, WebRTC, etc.)
-  // ALL of these are skipped on first-party trusted sites (Fiverr, Facebook,
-  // Instagram, Google, etc.) because bot-detection services like PerimeterX
-  // and DataDome use these APIs to verify you're human. Blocking any of them
-  // causes "Failed to display challenge" errors and login/signup failures.
-  // Third-party tracker blocking (sections 19-22) stays active.
+  // These run EVERYWHERE — including on trusted first-party sites like Fiverr,
+  // Facebook, Instagram — so you get full privacy protection on every page.
+  // They are skipped ONLY inside bot-detection iframes (PerimeterX, DataDome,
+  // hCaptcha, reCAPTCHA, Arkose Labs, Cloudflare Turnstile) because those
+  // challenge frames need to read real canvas/WebGL/audio/etc. to verify a
+  // human completed the challenge. The trusted site's MAIN page still gets
+  // the full spoof treatment.
   // =========================================================================
 
-  if (!isOnFirstPartySite) {
+  if (!IN_BOT_DETECTION_FRAME) {
 
   // =========================================================================
   // 1. BLOCK WebRTC (IP Leak Prevention)
@@ -494,7 +521,7 @@
     if (navigator.gpu) defineReadonly(navigator, "gpu", undefined);
   } catch (e) {}
 
-  } // end if (!isOnFirstPartySite) - sections 1-18 skipped on trusted first-party sites
+  } // end if (!IN_BOT_DETECTION_FRAME) - sections 1-18 skipped only inside captcha/bot-detection iframes
 
   // =========================================================================
   // 19. INTERCEPT XHR & FETCH TO BLOCK TRACKING REQUESTS
@@ -586,11 +613,10 @@
 
   function isTrackingURL(url) {
     if (!url || typeof url !== "string") return false;
-    // If the TOP frame is a trusted first-party site (Fiverr, Instagram, etc.),
-    // never block anything — including from bot-detection iframes embedded inside.
-    // This is required because PerimeterX / DataDome / hCaptcha iframes make POSTs
-    // to their own backends from inside the iframe; blocking those breaks login.
-    if (isOnFirstPartySite) return false;
+    // If we're running inside a bot-detection / captcha iframe, never block its
+    // own network requests — PerimeterX / DataDome / hCaptcha iframes POST their
+    // challenge results to their own backends, and blocking those breaks login.
+    if (IN_BOT_DETECTION_FRAME) return false;
     // First-party exception: don't block requests to the site you're currently on.
     // Login/session endpoints on fiverr.com should work when you're on fiverr.com.
     try {
@@ -919,15 +945,15 @@
         return origCookieDesc.get.call(this);
       },
       set: function (val) {
-        // If we're on a site that needs its own cookies for login (first-party),
-        // allow ALL cookies on its own domain. Still blocks third-party cookies
-        // from iframes/scripts loaded from tracker domains.
-        if (isOnFirstPartySite) {
+        // Never touch cookies from inside a captcha / bot-detection iframe —
+        // PerimeterX, DataDome, hCaptcha etc. set their own verification cookies.
+        if (IN_BOT_DETECTION_FRAME) {
           return origCookieDesc.set.call(this, val);
         }
 
-        // Only block pure third-party tracker cookies (Google Analytics, Hotjar, etc.)
-        // that are set by scripts embedded on unrelated sites
+        // Block known third-party tracker cookies by name EVERYWHERE (including
+        // on trusted sites). Session / auth cookies don't match this list so
+        // fiverr.com / facebook.com logins still work.
         const trackingCookies = [
           "_ga", "_gid", "_gat",
           "_gcl", "_uetsid", "_uetvid", "NID", "IDE", "MUID",
@@ -1007,10 +1033,10 @@
   }, 2000);
 
   // =========================================================================
-  // 24. REPORT ALWAYS-ON PROTECTIONS (only on non-first-party sites)
+  // 24. REPORT ALWAYS-ON PROTECTIONS (skipped only inside captcha iframes)
   // =========================================================================
 
-  if (!isOnFirstPartySite) {
+  if (!IN_BOT_DETECTION_FRAME) {
     setTimeout(() => {
       reportBlock("fingerprint", "spoof://screen", "Screen 1920x1080, DPR 1", "screen");
       reportBlock("fingerprint", "spoof://userAgent", "Chrome 120 / Windows 10", "browser_os");
@@ -1023,9 +1049,14 @@
     }, 100);
   }
 
-  if (isOnFirstPartySite) {
+  if (IN_BOT_DETECTION_FRAME) {
     console.log(
-      "%c[Total Privacy Shield] First-party site (" + currentTopHost + ") - only blocking third-party trackers. Fingerprint APIs untouched.",
+      "%c[Total Privacy Shield] Captcha/bot-detection frame (" + currentFrameHost + ") - spoofing disabled in this frame so the challenge works.",
+      "color: #ffaa00; font-weight: bold; font-size: 13px;"
+    );
+  } else if (isOnFirstPartySite) {
+    console.log(
+      "%c[Total Privacy Shield] Trusted site (" + currentTopHost + ") - full privacy protection active. If signup breaks, tap 'Pause on this site'.",
       "color: #00ff88; font-weight: bold; font-size: 13px;"
     );
   } else {
