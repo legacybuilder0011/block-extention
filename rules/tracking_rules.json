@@ -1,5 +1,14 @@
 [
   {
+    "id": 999,
+    "priority": 1000,
+    "action": { "type": "allowAllRequests" },
+    "condition": {
+      "requestDomains": ["fiverr.com", "upwork.com", "freelancer.com", "facebook.com", "instagram.com", "messenger.com", "whatsapp.com", "google.com", "youtube.com", "gmail.com", "twitter.com", "x.com", "linkedin.com", "amazon.com", "paypal.com", "stripe.com", "microsoft.com", "live.com", "outlook.com", "apple.com", "icloud.com", "ebay.com", "tiktok.com", "snapchat.com", "pinterest.com", "reddit.com", "netflix.com", "spotify.com"],
+      "resourceTypes": ["main_frame"]
+    }
+  },
+  {
     "id": 1,
     "priority": 1,
     "action": { "type": "block" },

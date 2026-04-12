@@ -21,13 +21,30 @@
     try { return window.location.hostname.replace(/^www\./, ""); } catch (e) { return ""; }
   }
 
+  // Get the TOP-level frame's host, even when running inside a cross-origin iframe.
+  // window.location.ancestorOrigins lists every parent frame's origin (including cross-origin),
+  // with the topmost frame being the LAST entry. This is critical for bot-detection iframes
+  // (PerimeterX, DataDome, hCaptcha, reCAPTCHA) that get injected into trusted pages like
+  // Fiverr — without this check, content.js would detect the iframe's own host as the "page"
+  // and spoof all the fingerprinting APIs the challenge needs to validate the user as human.
+  function topFrameHost() {
+    try {
+      const ancestors = window.location.ancestorOrigins;
+      if (ancestors && ancestors.length > 0) {
+        const topOrigin = ancestors[ancestors.length - 1];
+        return new URL(topOrigin).hostname.replace(/^www\./, "");
+      }
+    } catch (e) {}
+    return currentHost();
+  }
+
   function isPaused() {
     try {
       const raw = localStorage.getItem("TPS_PAUSED_SITES");
       if (!raw) return false;
       const list = JSON.parse(raw);
       if (!Array.isArray(list)) return false;
-      const host = currentHost();
+      const host = topFrameHost();
       // Match exact host or parent domain
       return list.some((d) => {
         d = (d || "").toLowerCase();
@@ -48,7 +65,10 @@
     "microsoft.com", "live.com", "outlook.com",
     "apple.com", "icloud.com",
   ];
-  const currentTopHost = currentHost();
+  // Use TOP frame host so iframes on trusted sites inherit trust.
+  // Without this, a PerimeterX iframe embedded in fiverr.com would fail to identify
+  // as first-party and content.js would spoof everything inside the iframe.
+  const currentTopHost = topFrameHost();
   const isOnFirstPartySite = FIRST_PARTY_HOSTS.some(
     (h) => currentTopHost === h || currentTopHost.endsWith("." + h)
   );
@@ -566,6 +586,11 @@
 
   function isTrackingURL(url) {
     if (!url || typeof url !== "string") return false;
+    // If the TOP frame is a trusted first-party site (Fiverr, Instagram, etc.),
+    // never block anything — including from bot-detection iframes embedded inside.
+    // This is required because PerimeterX / DataDome / hCaptcha iframes make POSTs
+    // to their own backends from inside the iframe; blocking those breaks login.
+    if (isOnFirstPartySite) return false;
     // First-party exception: don't block requests to the site you're currently on.
     // Login/session endpoints on fiverr.com should work when you're on fiverr.com.
     try {
